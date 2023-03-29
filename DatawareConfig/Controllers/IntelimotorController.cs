@@ -38,9 +38,61 @@ namespace DatawareConfig.Controllers
         [HttpGet("SyncIntelimotor")]
         public async Task<IActionResult> SyncIntelimotor(bool isManual = false)
         {
+
+            #region Descarga TipoAdquisicion
+            var syncIdTA = LogSystem.GetGuidDb();
+            var identifierTA = Convert.ToInt64(DateTime.Now.ToString("yyyyMMddHHmmss"));
+            string useridTA = "admin@admin.com";
+            LogSystem.SyncsCatIntelimotor(syncIdTA, identifierTA, isManual ? "Manual TA" : "Autommatico TA", useridTA); //Log Proceso Manual
+            LogSystem.SyncsDetailCatIntelimotor(syncIdTA, identifierTA, "Descarga datos Intelimotor", "0", "-");
+
+            var (resultTA, _httpResponseMessageEntTA) =
+            await HttpClientUtility.GetAsync<TipoAdquisicionDTOModel>($"{_urlIntelimotor}unit-types?apiKey={_apiKey}&apiSecret={_apiSecret}", null);
+
+            try
+            {
+                string resultadoApi;
+                if (_httpResponseMessageEntTA.StatusCode == HttpStatusCode.OK)
+                {
+                    resultadoApi = "Completado con éxito";
+                }
+                else
+                {
+                    SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, _httpResponseMessageEntTA.ReasonPhrase);
+                    resultadoApi = _httpResponseMessageEntTA.StatusCode.ToString();
+                }
+                LogSystem.SyncsDetailCatIntelimotor(syncIdTA, identifierTA, "Termina descarga datos Intelimotor", resultTA.data.Count.ToString(), resultadoApi);
+
+                ParametrosInsTADTOModel prams = new ParametrosInsTADTOModel
+                {
+                    TipoAdDto = resultTA,
+                    syncId = syncIdTA,
+                    identifier = identifierTA,
+                    userId = useridTA,
+                };
+                var registros = await InsertarRegistrosTA.InsTAIntelimotor(prams);
+
+                if (registros == 0)
+                    SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, "La sincronización falló");
+                //return new ObjectResult(ResponseHelper.Response(403, null, Messages.Error)) { StatusCode = 403 };
+
+                SendMailHelper.Send("OK", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, "La sincronización se realizó con éxito");
+                //return new OkObjectResult(ResponseHelper.Response(200, result.data, Messages.SuccessMsg));
+
+            }
+            catch (Exception e)
+            {
+                SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, "La sincronización falló. "+e.Message);
+                //return new OkObjectResult(ResponseHelper.Response(500, null, e.Message)) { StatusCode = 500 };
+                throw;
+            }
+            #endregion
+
+            #region Descarga Modelos
             var syncId = LogSystem.GetGuidDb();
             var identifier = Convert.ToInt64(DateTime.Now.ToString("yyyyMMddHHmmss"));
             string userid = "admin@admin.com";
+
             LogSystem.SyncsCatIntelimotor(syncId, identifier, isManual ? "Manual MO":"Autommatico MO", userid); //Log Proceso Manual
             LogSystem.SyncsDetailCatIntelimotor(syncId, identifier, "Descarga datos Intelimotor", "0", "-");
 
@@ -59,7 +111,7 @@ namespace DatawareConfig.Controllers
                 }
                 else
                 {
-                    SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: MMO-" + identifier, _httpResponseMessageEnt.ReasonPhrase);
+                    SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: " + (isManual ? "MMO-" : "AMO-") + identifier, _httpResponseMessageEnt.ReasonPhrase);
                     resultadoApi = _httpResponseMessageEnt.StatusCode.ToString();
                 }
                 LogSystem.SyncsDetailCatIntelimotor(syncId, identifier, "Termina descarga datos Intelimotor", result.trims.Count.ToString(), resultadoApi);
@@ -76,7 +128,7 @@ namespace DatawareConfig.Controllers
                 if (registros == 0)
                     return new ObjectResult(ResponseHelper.Response(403, null, Messages.Error)) { StatusCode = 403 };
 
-                SendMailHelper.Send("OK", "Descarga Intelimotor - #Proceso: MMO-" + identifier, "La sincronización se realizó con éxito");
+                SendMailHelper.Send("OK", "Descarga Intelimotor - #Proceso: " + (isManual ? "MMO-" : "AMO-") + identifier, "La sincronización se realizó con éxito");
                 return new OkObjectResult(ResponseHelper.Response(200, result.trims[0], Messages.SuccessMsg));
 
             }
@@ -85,10 +137,61 @@ namespace DatawareConfig.Controllers
                 return new OkObjectResult(ResponseHelper.Response(500, null, ex.Message)) { StatusCode = 500 };
                 throw;
             }
+            #endregion
 
         }
 
-       
+        [HttpGet("TipoAdquisicion")]
+        public async Task<IActionResult> SyncTipoAd(bool isManual = false)
+        {
+            var syncIdTA = LogSystem.GetGuidDb();
+            var identifierTA = Convert.ToInt64(DateTime.Now.ToString("yyyyMMddHHmmss"));
+            string useridTA = "admin@admin.com";
+            LogSystem.SyncsCatIntelimotor(syncIdTA, identifierTA, isManual ? "Manual TA" : "Autommatico TA", useridTA); //Log Proceso Manual
+            LogSystem.SyncsDetailCatIntelimotor(syncIdTA, identifierTA, "Descarga datos Intelimotor", "0", "-");
+
+            var (result, _httpResponseMessageEnt) =
+            await HttpClientUtility.GetAsync<TipoAdquisicionDTOModel>($"{_urlIntelimotor}unit-types?apiKey={_apiKey}&apiSecret={_apiSecret}", null);
+
+            try
+            {
+                string resultadoApi;
+                if(_httpResponseMessageEnt.StatusCode == HttpStatusCode.OK)
+                {
+                    resultadoApi = "Completado con éxito";
+                }
+                else
+                {
+                    SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, _httpResponseMessageEnt.ReasonPhrase);
+                    resultadoApi = _httpResponseMessageEnt.StatusCode.ToString();
+                }
+                LogSystem.SyncsDetailCatIntelimotor(syncIdTA, identifierTA, "Termina descarga datos Intelimotor", result.data.Count.ToString(), resultadoApi);
+
+                ParametrosInsTADTOModel prams = new ParametrosInsTADTOModel
+                {
+                    TipoAdDto = result,
+                    syncId= syncIdTA,
+                    identifier=identifierTA,
+                    userId  =useridTA,
+                };
+                var registros = await InsertarRegistrosTA.InsTAIntelimotor(prams);
+
+                if(registros == 0)
+                    return new ObjectResult(ResponseHelper.Response(403, null, Messages.Error)) { StatusCode = 403 };
+
+                SendMailHelper.Send("OK", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, "La sincronización se realizó con éxito");
+                return new OkObjectResult(ResponseHelper.Response(200, result.data, Messages.SuccessMsg));
+
+            }
+            catch(Exception e)
+            {
+                return new OkObjectResult(ResponseHelper.Response(500, null, e.Message)) { StatusCode = 500 };
+                throw;
+            }
+
+        }
+
+
     }
 
 }
