@@ -1,19 +1,26 @@
-﻿using System.Net.Mail;
+﻿using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
 
 namespace DatawareConfig.Helpers
 {
-    public static class Notificaciones
+    public static class SendMailHelper
     {
-        public static void Enviar(string tipomsg, string asunto, string mensaje)
+        public static void Send(string tipomsg, string asunto, string mensaje)
         {
+            var email = new MimeMessage();
+
             string remitente = "dataware@datamovil.com";
             string usuariomail = "dataware@datamovil.com";
             string destinatario = "daniel.lopez@consiss.com";
             string password = "cSe7m4N9sK";
-            MailMessage mail = new MailMessage(remitente, destinatario);
+            string host = "mail.datamovil.com";
+            int port = 25;
+            bool useSSL = false;
 
-            mail.IsBodyHtml = true;
-            mail.Subject = asunto;
+            email.From.Add(MailboxAddress.Parse(remitente));
+            email.To.Add(MailboxAddress.Parse(destinatario));
+            email.Subject = asunto;
 
             string tipoNotificacion;
             if (tipomsg == "OK")
@@ -36,16 +43,15 @@ namespace DatawareConfig.Helpers
                 "-- <br><br>" +
                 "<i style='font-size:11px;'>Este correo es generado automaticamente por el servidor. Favor de no responder.</i>";
 
-            mail.Body = contenido;
 
-            SmtpClient smtpClient = new SmtpClient();
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html) { Text = contenido };
 
-            smtpClient.Host = "mail.datamovil.com";
-            smtpClient.Port = 25;
-            smtpClient.UseDefaultCredentials = false;
-            smtpClient.Credentials = new System.Net.NetworkCredential(usuariomail, password);
-            smtpClient.EnableSsl = false;
-            smtpClient.Send(mail);
+            using var smtp = new SmtpClient();
+            //smtp.SslProtocols = SslProtocols.Ssl3 | SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12 | SslProtocols.Tls13;
+            smtp.Connect(host, 45, SecureSocketOptions.None);
+            smtp.Authenticate(usuariomail, password);
+            smtp.Send(email);
+            smtp.Disconnect(true);
         }
     }
 }

@@ -35,7 +35,7 @@ namespace DatawareConfig.Controllers
             _apiSecret = "cd956b40c566ebac02ea5744f6bea6eaba8428e30a01c3135db57f799c291dcb";
         }
 
-        [HttpPost("SyncIntelimotor")]
+        [HttpGet("SyncIntelimotor")]
         public async Task<IActionResult> SyncIntelimotor()
         {
             var syncId = LogSystem.GetGuidDb();
@@ -43,7 +43,6 @@ namespace DatawareConfig.Controllers
             string userid = "admin@admin.com";
             LogSystem.SyncsCatIntelimotor(syncId, identifier, "Manual MO", userid); //Log Proceso Manual
             LogSystem.SyncsDetailCatIntelimotor(syncId, identifier, "Descarga datos Intelimotor", "0", "-");
-
 
             var (result, _httpResponseMessageEnt) =
             await HttpClientUtility.GetAsync<TrimsDTO>($"{_urlIntelimotor}trims?apiKey={_apiKey}&apiSecret={_apiSecret}", null);
@@ -55,11 +54,12 @@ namespace DatawareConfig.Controllers
                 if (_httpResponseMessageEnt.StatusCode == HttpStatusCode.OK)
                 {
                     resultadoApi = "Completado con éxito";
-                    Notificaciones.Enviar("OK", "Descarga Intelimotor - #Proceso: MMO-" + identifier, "La descarga de datos se ha completado con éxito");
+                    //SendMailHelper.Send("OK", "Descarga Intelimotor - #Proceso: MMO-" + identifier, "La descarga de datos se ha completado con éxito");
+                    //Notificaciones.Enviar("OK", "Descarga Intelimotor - #Proceso: MMO-" + identifier, "La descarga de datos se ha completado con éxito");
                 }
                 else
                 {
-                    Notificaciones.Enviar("ERROR", "Descarga Intelimotor - #Proceso: MMO-" + identifier, _httpResponseMessageEnt.ReasonPhrase);
+                    SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: MMO-" + identifier, _httpResponseMessageEnt.ReasonPhrase);
                     resultadoApi = _httpResponseMessageEnt.StatusCode.ToString();
                 }
                 LogSystem.SyncsDetailCatIntelimotor(syncId, identifier, "Termina descarga datos Intelimotor", result.trims.Count.ToString(), resultadoApi);
@@ -72,10 +72,11 @@ namespace DatawareConfig.Controllers
                     userId = userid
                 };
                 var registros = await InsertarRegistros.InsCatIntelimotor(prams);
-
+                
                 if (registros == 0)
                     return new ObjectResult(ResponseHelper.Response(403, null, Messages.Error)) { StatusCode = 403 };
 
+                SendMailHelper.Send("OK", "Descarga Intelimotor - #Proceso: MMO-" + identifier, "La sincronización se realizó con éxito");
                 return new OkObjectResult(ResponseHelper.Response(200, result.trims[0], Messages.SuccessMsg));
 
             }
