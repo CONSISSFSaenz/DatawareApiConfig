@@ -36,12 +36,12 @@ namespace DatawareConfig.Controllers
         }
 
         [HttpGet("SyncIntelimotor")]
-        public async Task<IActionResult> SyncIntelimotor()
+        public async Task<IActionResult> SyncIntelimotor(bool isManual = false)
         {
             var syncId = LogSystem.GetGuidDb();
             var identifier = Convert.ToInt64(DateTime.Now.ToString("yyyyMMddHHmmss"));
             string userid = "admin@admin.com";
-            LogSystem.SyncsCatIntelimotor(syncId, identifier, "Manual MO", userid); //Log Proceso Manual
+            LogSystem.SyncsCatIntelimotor(syncId, identifier, isManual ? "Manual MO":"Autommatico MO", userid); //Log Proceso Manual
             LogSystem.SyncsDetailCatIntelimotor(syncId, identifier, "Descarga datos Intelimotor", "0", "-");
 
             var (result, _httpResponseMessageEnt) =
