@@ -34,7 +34,10 @@ namespace Consiss.DataWare.Functions.Utilities
         public const string GetDataError = "Ocurrio un error al intentar obtener el dato.";
 
         public const string Error = "Error al sincronizar datos de Intelimotor";
+        public const string ErrorUpLoad = "Error al cargar colonias";
 
         public const string SuccessMsg = "La sincronización se ha realizado con éxito";
+        public const string SuccessMsgUp = "La carga se ha realizado con éxito";
+
     }
 }

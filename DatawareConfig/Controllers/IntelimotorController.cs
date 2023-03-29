@@ -43,7 +43,7 @@ namespace DatawareConfig.Controllers
             var syncIdTA = LogSystem.GetGuidDb();
             var identifierTA = Convert.ToInt64(DateTime.Now.ToString("yyyyMMddHHmmss"));
             string useridTA = "admin@admin.com";
-            LogSystem.SyncsCatIntelimotor(syncIdTA, identifierTA, isManual ? "Manual TA" : "Autommatico TA", useridTA); //Log Proceso Manual
+            LogSystem.SyncsCatIntelimotor(syncIdTA, identifierTA, isManual ? "Manual TA" : "automático TA", useridTA); //Log Proceso Manual
             LogSystem.SyncsDetailCatIntelimotor(syncIdTA, identifierTA, "Descarga datos Intelimotor", "0", "-");
 
             var (resultTA, _httpResponseMessageEntTA) =
