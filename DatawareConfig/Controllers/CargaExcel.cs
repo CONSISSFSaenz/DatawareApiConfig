@@ -25,114 +25,90 @@ namespace DatawareConfig.Controllers
         public async Task<IActionResult> Upload(IFormFile file)
         {
             string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
-            try
+            
+            var stream = file.OpenReadStream();
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            int resultInsert = 0;
+            var lista = new List<ColoniaEntity>();
+            using (var reader = ExcelDataReader.ExcelReaderFactory.CreateReader(stream))
             {
-
-                var stream = file.OpenReadStream();
-                System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-                using (var reader = ExcelDataReader.ExcelReaderFactory.CreateReader(stream))
+                //var result = reader.AsDataSet();
+                //DataSet dataset = reader.AsDataSet();
+                var result = reader.AsDataSet(new ExcelDataSetConfiguration()
                 {
-                    //var result = reader.AsDataSet();
-                    //DataSet dataset = reader.AsDataSet();
-                    var result = reader.AsDataSet(new ExcelDataSetConfiguration()
+                    ConfigureDataTable = (_) => new ExcelDataTableConfiguration()
                     {
-                        ConfigureDataTable = (_) => new ExcelDataTableConfiguration()
-                        {
-                            UseHeaderRow = true
-                        }
-                    });
-                    DataTable table = result.Tables[0];
-                    var sheet1 = table.TableName;
-                    int municipioId;
-                    List<ColoniaEntity> lstColonia = new List<ColoniaEntity>();
-
-                    foreach (DataTable item in result.Tables)
-                    {
-                        if(item.TableName != sheet1)
-                        {
-                            var municipioIdExcel = item.Select().FirstOrDefault().ItemArray[3];
-                            using (SqlConnection cnx = new SqlConnection(cnxStr))
-                            {
-                                municipioId =  await cnx.QueryFirstOrDefaultAsync<int>("SELECT MunicipioId FROM Catalogos.Municipio WHERE Municipio=@municipioIdExcel", param: new { municipioIdExcel }, commandType: CommandType.Text);
-                            }
-
-                            foreach (var r in item.AsEnumerable())
-                            {
-                                var itemCol = new ColoniaEntity
-                                {
-                                    ColoniaId = Convert.ToInt32(r[0].ToString()),
-                                    Colonia = r[1].ToString(),
-                                    MunicipioId = municipioId,
-                                    CodigoPostal = Convert.ToInt32(r[6].ToString()),
-                                    Status = true
-                                };
-                                lstColonia.Add(itemCol);
-                            }
-                        }                                           
+                        UseHeaderRow = true
                     }
-                    var lista = lstColonia;
-
-                    try
+                });
+                DataTable table = result.Tables[0];
+                var sheet1 = table.TableName;
+                int municipioId;
+                int edoId;
+                List<ColoniaEntity> lstColonia = new List<ColoniaEntity>();
+                long registrosInsertados = 0;
+                foreach (DataTable item in result.Tables)
+                {
+                    if(item.TableName != sheet1)
                     {
-                        int resultInsert = 0;
+                        var municipioIdExcel = item.Select().FirstOrDefault().ItemArray[3];
+                        var edoIdExcel = item.Select().FirstOrDefault().ItemArray[4];
                         using (SqlConnection cnx = new SqlConnection(cnxStr))
                         {
-                            foreach (var item in lstColonia)
+                            edoId = await cnx.QueryFirstOrDefaultAsync<int>("SELECT EdoMexicoId FROM Catalogos.EdoMexico WHERE Estado=@edoIdExcel", param: new { edoIdExcel }, commandType: CommandType.Text);
+                            municipioId =  await cnx.QueryFirstOrDefaultAsync<int>("SELECT MunicipioId FROM Catalogos.Municipio WHERE Municipio=@municipioIdExcel AND EdoMexicoId=@edoId", param: new { municipioIdExcel,edoId }, commandType: CommandType.Text);
+                        }
+
+                        foreach (var r in item.AsEnumerable())
+                        {
+                            var itemCol = new ColoniaEntity
+                            {
+                                Colonia = r[1].ToString(),
+                                MunicipioId = municipioId,
+                                CodigoPostal = Convert.ToInt32(r[0].ToString()),
+                                Status = true
+                            };
+                            lstColonia.Add(itemCol);
+                        }
+
+                        lista = lstColonia;
+                        using (SqlConnection cnx = new SqlConnection(cnxStr))
+                        {
+                            foreach (var colonias in lstColonia)
                             {
                                 var dynamicParameters = new DynamicParameters();
-                                dynamicParameters.Add("@Accion", "Add");
-                                dynamicParameters.Add("@Nombre", item.Colonia);
-                                dynamicParameters.Add("@MunicipioId", item.MunicipioId);
-                                dynamicParameters.Add("@CodigoPostal", item.CodigoPostal);
-                                dynamicParameters.Add("@Estatus", item.Status);
+                                dynamicParameters.Add("@Accion", "Ins");
+                                dynamicParameters.Add("@Nombre", colonias.Colonia);
+                                dynamicParameters.Add("@MunicipioId", colonias.MunicipioId);
+                                dynamicParameters.Add("@CodigoPostal", colonias.CodigoPostal);
+                                dynamicParameters.Add("@Estatus", colonias.Status);
                                 resultInsert = await cnx.ExecuteScalarAsync<int>("Catalogos.SP_CRUD_Colonia",
-                                    param: dynamicParameters,
+                                    param: dynamicParameters,commandTimeout:800,
                                     commandType: CommandType.StoredProcedure);
-
-                            }                            
+                                registrosInsertados++;
+                            }
                         }
-                        if (resultInsert > 1)
-                            return new ObjectResult(ResponseHelper.Response(403, null, Messages.ErrorUpLoad)) { StatusCode = 403 };
-                        
-                        return new OkObjectResult(ResponseHelper.Response(200, null, Messages.SuccessMsgUp));
+
                     }
-                    catch (Exception ex)
-                    {
-                        throw;
-                    }
-                    //string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
-                    //using (SqlConnection cnx = new SqlConnection(cnxStr))
-                    //{
-
-                    //    //DataTable table = result.Tables[0];
-                    //    //var sheet1 = table.TableName;
-
-                    //    /*foreach (DataTable table in result.Tables)
-                    //    {
-                    //        await cnx.ExecuteAsync("INSERT INTO dbo.estado$ (IdEstado, NombreEstado, IdPais) VALUES (@Column1, @Column2, @Column3)", table.AsEnumerable().Select(r => new
-                    //        {
-                    //            Column1 = r[0].ToString(),
-                    //            Column2 = r[1].ToString(),
-                    //            Column3 = r[2].ToString()
-                    //        }));
-                    //    }*/
-
-
-
-                    //}
-
+                    
                 }
+                
 
+                try
+                {
+                    if (resultInsert > 1)
+                        return new ObjectResult(ResponseHelper.Response(403, null, Messages.ErrorUpLoad)) { StatusCode = 403 };
+                        
+                    return new OkObjectResult(ResponseHelper.Response(200, registrosInsertados, Messages.SuccessMsgUp));
+                }
+                catch (Exception ex)
+                {
+                    throw;
+                }
+                    
             }
-            catch (Exception ex)
-            {
-                return new OkObjectResult(ex);
-                throw;
-            }
 
-
-
-            return new OkResult();
+            
         }
     }
 }
