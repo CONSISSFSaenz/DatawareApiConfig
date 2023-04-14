@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Win32;
 using System.Data;
 using System.Net;
 
@@ -120,6 +121,7 @@ namespace DatawareConfig.Controllers
                     }
                     else
                     {
+                        LogsDataware.LogSistema(2,LogsDataware.ERRORActualizar,"Sincronización TA fallida","Registros: " + registros);
                         LogsDataware.LogInterfazDetalle(LogsInterfazIDTA, "Sync Tipo Adquisicion", "Actualizar", "La sincronización falló");
                     }
                     SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, "La sincronización falló");
@@ -137,6 +139,7 @@ namespace DatawareConfig.Controllers
                     }
                     else
                     {
+                        LogsDataware.LogSistema(2, LogsDataware.OKActualizar, "Sincronización TA Completada", "Registros: " + registros);
                         LogsDataware.LogInterfazDetalle(LogsInterfazIDTA, "Sync Tipo Adquisicion", "Actualizar", "La sincronización se realizó con éxito");
                     }
                     //SendMailHelper.Send("OK", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, "La sincronización se realizó con éxito");
@@ -157,6 +160,7 @@ namespace DatawareConfig.Controllers
                 }
                 else
                 {
+                    LogsDataware.LogSistema(2, LogsDataware.ERRORActualizar, "Sincronización TA fallida", e.Message);
                     LogsDataware.LogInterfazDetalle(LogsInterfazIDTA, "Sync Tipo Adquisicion", "Actualizar", e.Message);
                 }
                 SendMailHelper.Notificaciones(1, "No se completó la sincronización Tipo Adquisición, " + e.Message);
@@ -246,6 +250,7 @@ namespace DatawareConfig.Controllers
                     }
                     else
                     {
+                        LogsDataware.LogSistema(2, LogsDataware.ERRORActualizar, "Sincronización MO fallida", "Registros: " + registros);
                         LogsDataware.LogInterfazDetalle(LogsInterfazIDMO, "Sync Modelos", "Actualizar", "La sincronización falló");
                     }
                     return new ObjectResult(ResponseHelper.Response(403, null, Messages.Error)) { StatusCode = 403 };
@@ -263,6 +268,7 @@ namespace DatawareConfig.Controllers
                     }
                     else
                     {
+                        LogsDataware.LogSistema(2, LogsDataware.OKActualizar, "Sincronización MO Completada", "Registros: " + registros);
                         LogsDataware.LogInterfazDetalle(LogsInterfazIDMO, "Sync Modelos", "Actualizar", "La sincronización se realizó con éxito");
                     }
                     //SendMailHelper.Send("OK", "Descarga Intelimotor - #Proceso: " + (isManual ? "MMO-" : "AMO-") + identifier, "La sincronización se realizó con éxito");
@@ -283,6 +289,7 @@ namespace DatawareConfig.Controllers
                 }
                 else
                 {
+                    LogsDataware.LogSistema(2, LogsDataware.ERRORActualizar, "Sincronización MO fallida", ex.Message);
                     LogsDataware.LogInterfazDetalle(LogsInterfazIDMO, "Sync Modelos", "Actualizar", ex.Message);
                 }
                 SendMailHelper.Notificaciones(1, "No se completó la sincronización Modelos, " + ex.Message);
