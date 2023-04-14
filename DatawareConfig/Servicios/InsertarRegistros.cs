@@ -56,35 +56,6 @@ namespace DatawareConfig.Servicios
 
                     await cnx.OpenAsync();
 
-                    //var modelos = new List<ModelosEntity>();
-                    //var dt = new DataTable();
-                    //dt.Columns.Add("ClaveYear", typeof(string)).MaxLength = 50;
-                    //dt.Columns.Add("NombreYear", typeof(string)).MaxLength = 100;
-                    //dt.Columns.Add("ClaveMarca", typeof(string)).MaxLength = 50;
-                    //dt.Columns.Add("NombreMarca", typeof(string)).MaxLength = 100;
-                    //dt.Columns.Add("ClaveModelo", typeof(string)).MaxLength = 50;
-                    //dt.Columns.Add("NombreModelo", typeof(string)).MaxLength = 100;
-                    //dt.Columns.Add("ClaveVersion", typeof(string)).MaxLength = 50;
-                    //dt.Columns.Add("NombreVersion", typeof(string)).MaxLength = 100;
-                    //dt.Columns.Add("UsuarioAlta", typeof(string)).MaxLength = 100;
-                    //dt.Columns.Add("FilaRegistro", typeof(long));
-                    //dt.Columns.Add("TotalRegstros", typeof(long));
-                    //dt.Columns.Add("SyncsId", typeof(long));
-
-                    //for (int i = 0; i <= totalRegistros; i++)
-                    //{
-                    //    dt.Rows.Add(
-                    //        p.TrimsDto.trims[i].year.id, p.TrimsDto.trims[i].year.name,
-                    //        p.TrimsDto.trims[i].brand.id, p.TrimsDto.trims[i].brand.name,
-                    //        p.TrimsDto.trims[i].model.id, p.TrimsDto.trims[i].model.name,
-                    //        p.TrimsDto.trims[i].trim.id, p.TrimsDto.trims[i].trim.name,
-                    //        p.userId,
-                    //        filaRegistro++,
-                    //        totalRegistros,
-                    //        p.identifier
-                    //        );
-                    //}
-
                     var parameters = new
                     {
                         projects = dt.AsTableValuedParameter("[Catalogos].[ModelosCat]")
@@ -97,7 +68,7 @@ namespace DatawareConfig.Servicios
 
                     resultados = await cnx.ExecuteScalarAsync<int>(
                         "[Catalogos].[SP_Add_Modelos]",
-                        param: parameters, commandTimeout: 500,
+                        param: parameters, commandTimeout: 1500,
                         commandType: CommandType.StoredProcedure);
 
                    await cnx.CloseAsync();

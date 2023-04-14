@@ -2,6 +2,7 @@
 using MailKit.Security;
 using Microsoft.Data.SqlClient;
 using MimeKit;
+using System.Data;
 
 namespace DatawareConfig.Helpers
 {
@@ -21,40 +22,41 @@ namespace DatawareConfig.Helpers
             NotificacionModel obj = new NotificacionModel();
             using (SqlConnection cnx = new SqlConnection(cnxStr))
             {
-                await cnx.OpenAsync();
-                using (SqlCommand cmd = new SqlCommand("Notificaciones.SP_GetAll_TipoCorreos", cnx))
-                {
-                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                    cmd.Parameters.Add("@Accion", System.Data.SqlDbType.NVarChar).Value = "TipoCorreosById";
-                    cmd.Parameters.Add("@TablaId", System.Data.SqlDbType.BigInt).Value = tipoCorreoId;
-                    var reader = await cmd.ExecuteReaderAsync();
-                    while (await reader.ReadAsync())
+                if (cnx.State == ConnectionState.Closed)
+                    await cnx.OpenAsync();
+                    using (SqlCommand cmd = new SqlCommand("Notificaciones.SP_GetAll_TipoCorreos", cnx))
                     {
-                        if (reader.HasRows)
+                        cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@Accion", System.Data.SqlDbType.NVarChar).Value = "TipoCorreosById";
+                        cmd.Parameters.Add("@TablaId", System.Data.SqlDbType.BigInt).Value = tipoCorreoId;
+                        var reader = await cmd.ExecuteReaderAsync();
+                        while (await reader.ReadAsync())
                         {
-                            obj = new NotificacionModel
+                            if (reader.HasRows)
                             {
-                                TipoCorreo = reader.GetString(0),
-                                Correos = reader.GetString(1),
-                                Prioridad = reader.GetString(2),
-                                Contenido = reader.GetString(3),
-                                Status = reader.GetBoolean(4)
-                            };
-
-                            if (obj.Status == true)
-                            {
-                                var toEmails = obj.Correos.Split(',');
-                                foreach (var toEmail in toEmails)
+                                obj = new NotificacionModel
                                 {
-                                    Enviar(obj.TipoCorreo, toEmail, obj.Prioridad, obj.Contenido.Replace("{ContainerMail}", contenidoMsj));
-                                }
+                                    TipoCorreo = reader.GetString(0),
+                                    Correos = reader.GetString(1),
+                                    Prioridad = reader.GetString(2),
+                                    Contenido = reader.GetString(3),
+                                    Status = reader.GetBoolean(4)
+                                };
 
+                                if (obj.Status == true)
+                                {
+                                    var toEmails = obj.Correos.Split(',');
+                                    foreach (var toEmail in toEmails)
+                                    {
+                                        Enviar(obj.TipoCorreo, toEmail, obj.Prioridad, obj.Contenido.Replace("{ContainerMail}", contenidoMsj));
+                                    }
+
+                                }
                             }
+
                         }
 
                     }
-
-                }
                 await cnx.CloseAsync();
             }
 

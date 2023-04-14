@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace DatawareConfig.Helpers
 {
@@ -34,7 +35,8 @@ namespace DatawareConfig.Helpers
         #region Methods
         public static string CnxStrDb()
         {
-            return Environment.GetEnvironmentVariable("sqldb_connection");
+            //return Environment.GetEnvironmentVariable("sqldb_connection");
+            return "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=900000";
         }
 
         public static async Task<long> LogInterfaz(long ProcesoId, long CategoriaId, string Descripcion, string Contenido)
@@ -44,18 +46,19 @@ namespace DatawareConfig.Helpers
             long Id = 0;
             using (SqlConnection cnx = new SqlConnection(cnxStr))
             {
-                await cnx.OpenAsync();
-                using (SqlCommand cmd = new SqlCommand("Logs.SP_Ins_Interfaz", cnx))
-                {
-                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                    cmd.Parameters.Add("@ProcesoId", System.Data.SqlDbType.BigInt).Value = ProcesoId;
-                    cmd.Parameters.Add("@CategoriaId", System.Data.SqlDbType.BigInt).Value = CategoriaId;
-                    cmd.Parameters.Add("@Descripcion", System.Data.SqlDbType.NVarChar).Value = Descripcion;
-                    cmd.Parameters.Add("@Contenido", System.Data.SqlDbType.NVarChar).Value = Contenido;
-                    cmd.Parameters.Add("@FechaRegistro", System.Data.SqlDbType.DateTime).Value = FechaRegistro;
+                if (cnx.State == ConnectionState.Closed)
+                    await cnx.OpenAsync();
+                    using (SqlCommand cmd = new SqlCommand("Logs.SP_Ins_Interfaz", cnx))
+                    {
+                        cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@ProcesoId", System.Data.SqlDbType.BigInt).Value = ProcesoId;
+                        cmd.Parameters.Add("@CategoriaId", System.Data.SqlDbType.BigInt).Value = CategoriaId;
+                        cmd.Parameters.Add("@Descripcion", System.Data.SqlDbType.NVarChar).Value = Descripcion;
+                        cmd.Parameters.Add("@Contenido", System.Data.SqlDbType.NVarChar).Value = Contenido;
+                        cmd.Parameters.Add("@FechaRegistro", System.Data.SqlDbType.DateTime).Value = FechaRegistro;
 
-                    Id = Convert.ToInt64(await cmd.ExecuteScalarAsync());
-                }
+                        Id = Convert.ToInt64(await cmd.ExecuteScalarAsync());
+                    }
                 await cnx.CloseAsync();
             }
             return Id;
@@ -67,18 +70,19 @@ namespace DatawareConfig.Helpers
             DateTime FechaRegistro = TimeZoneInfo.ConvertTime(DateTime.Now, TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time (Mexico)"));  //DateTime.UtcNow;
             using (SqlConnection cnx = new SqlConnection(cnxStr))
             {
-                await cnx.OpenAsync();
-                using (SqlCommand cmd = new SqlCommand("Logs.SP_Ins_Interfaz_Detalle", cnx))
-                {
-                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                    cmd.Parameters.Add("@LogInterfazId", System.Data.SqlDbType.BigInt).Value = LogInterfazId;
-                    cmd.Parameters.Add("@Accion", System.Data.SqlDbType.NVarChar).Value = Accion;
-                    cmd.Parameters.Add("@Etiquetas", System.Data.SqlDbType.NVarChar).Value = Etiquetas;
-                    cmd.Parameters.Add("@Resultado", System.Data.SqlDbType.NVarChar).Value = Resultado;
-                    cmd.Parameters.Add("@FechaRegistro", System.Data.SqlDbType.DateTime).Value = FechaRegistro;
+                if (cnx.State == ConnectionState.Closed)
+                    await cnx.OpenAsync();
+                    using (SqlCommand cmd = new SqlCommand("Logs.SP_Ins_Interfaz_Detalle", cnx))
+                    {
+                        cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@LogInterfazId", System.Data.SqlDbType.BigInt).Value = LogInterfazId;
+                        cmd.Parameters.Add("@Accion", System.Data.SqlDbType.NVarChar).Value = Accion;
+                        cmd.Parameters.Add("@Etiquetas", System.Data.SqlDbType.NVarChar).Value = Etiquetas;
+                        cmd.Parameters.Add("@Resultado", System.Data.SqlDbType.NVarChar).Value = Resultado;
+                        cmd.Parameters.Add("@FechaRegistro", System.Data.SqlDbType.DateTime).Value = FechaRegistro;
 
-                    await cmd.ExecuteNonQueryAsync();
-                }
+                        await cmd.ExecuteNonQueryAsync();
+                    }
                 await cnx.CloseAsync();
             }
         }
@@ -89,18 +93,19 @@ namespace DatawareConfig.Helpers
             DateTime FechaRegistro = TimeZoneInfo.ConvertTime(DateTime.Now, TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time (Mexico)"));  //DateTime.UtcNow;
             using (SqlConnection cnx = new SqlConnection(cnxStr))
             {
-                await cnx.OpenAsync();
-                using (SqlCommand cmd = new SqlCommand("Logs.SP_Ins_Sistema", cnx))
-                {
-                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                    cmd.Parameters.Add("@ProcesoId", System.Data.SqlDbType.BigInt).Value = ProcesoId;
-                    cmd.Parameters.Add("@CategoriaId", System.Data.SqlDbType.BigInt).Value = CategoriaId;
-                    cmd.Parameters.Add("@Descripcion", System.Data.SqlDbType.NVarChar).Value = Descripcion;
-                    cmd.Parameters.Add("@Contenido", System.Data.SqlDbType.NVarChar).Value = Contenido;
-                    cmd.Parameters.Add("@FechaRegistro", System.Data.SqlDbType.DateTime).Value = FechaRegistro;
+                if (cnx.State == ConnectionState.Closed)
+                    await cnx.OpenAsync();
+                    using (SqlCommand cmd = new SqlCommand("Logs.SP_Ins_Sistema", cnx))
+                    {
+                        cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@ProcesoId", System.Data.SqlDbType.BigInt).Value = ProcesoId;
+                        cmd.Parameters.Add("@CategoriaId", System.Data.SqlDbType.BigInt).Value = CategoriaId;
+                        cmd.Parameters.Add("@Descripcion", System.Data.SqlDbType.NVarChar).Value = Descripcion;
+                        cmd.Parameters.Add("@Contenido", System.Data.SqlDbType.NVarChar).Value = Contenido;
+                        cmd.Parameters.Add("@FechaRegistro", System.Data.SqlDbType.DateTime).Value = FechaRegistro;
 
-                    await cmd.ExecuteNonQueryAsync();
-                }
+                        await cmd.ExecuteNonQueryAsync();
+                    }
                 await cnx.CloseAsync();
             }
         }
@@ -111,19 +116,20 @@ namespace DatawareConfig.Helpers
             DateTime FechaRegistro = TimeZoneInfo.ConvertTime(DateTime.Now, TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time (Mexico)"));  //DateTime.UtcNow;
             using (SqlConnection cnx = new SqlConnection(cnxStr))
             {
-                await cnx.OpenAsync();
-                using (SqlCommand cmd = new SqlCommand("Logs.SP_Ins_Usuario", cnx))
-                {
-                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                    cmd.Parameters.Add("@UsuarioId", System.Data.SqlDbType.UniqueIdentifier).Value = new Guid(UsuarioId.ToString());
-                    cmd.Parameters.Add("@ModuloId", System.Data.SqlDbType.BigInt).Value = ModuloId;
-                    cmd.Parameters.Add("@CategoriaId", System.Data.SqlDbType.BigInt).Value = CategoriaId;
-                    cmd.Parameters.Add("@Descripcion", System.Data.SqlDbType.NVarChar).Value = Descripcion;
-                    cmd.Parameters.Add("@Contenido", System.Data.SqlDbType.NVarChar).Value = Contenido;
-                    cmd.Parameters.Add("@FechaRegistro", System.Data.SqlDbType.DateTime).Value = FechaRegistro;
+                if (cnx.State == ConnectionState.Closed)
+                    await cnx.OpenAsync();
+                    using (SqlCommand cmd = new SqlCommand("Logs.SP_Ins_Usuario", cnx))
+                    {
+                        cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@UsuarioId", System.Data.SqlDbType.UniqueIdentifier).Value = new Guid(UsuarioId.ToString());
+                        cmd.Parameters.Add("@ModuloId", System.Data.SqlDbType.BigInt).Value = ModuloId;
+                        cmd.Parameters.Add("@CategoriaId", System.Data.SqlDbType.BigInt).Value = CategoriaId;
+                        cmd.Parameters.Add("@Descripcion", System.Data.SqlDbType.NVarChar).Value = Descripcion;
+                        cmd.Parameters.Add("@Contenido", System.Data.SqlDbType.NVarChar).Value = Contenido;
+                        cmd.Parameters.Add("@FechaRegistro", System.Data.SqlDbType.DateTime).Value = FechaRegistro;
 
-                    await cmd.ExecuteNonQueryAsync();
-                }
+                        await cmd.ExecuteNonQueryAsync();
+                    }
                 await cnx.CloseAsync();
             }
         }
@@ -133,15 +139,16 @@ namespace DatawareConfig.Helpers
             string cnxStr = CnxStrDb();
             using (SqlConnection cnx = new SqlConnection(cnxStr))
             {
-                await cnx.OpenAsync();
-                using (SqlCommand cmd = new SqlCommand("Logs.SP_UpdExportLogs", cnx))
-                {
-                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                    cmd.Parameters.Add("@TablaLog", System.Data.SqlDbType.NVarChar).Value = tabla;
-                    cmd.Parameters.Add("@Ids", System.Data.SqlDbType.NVarChar).Value = ids;
+                if (cnx.State == ConnectionState.Closed)
+                    await cnx.OpenAsync();
+                    using (SqlCommand cmd = new SqlCommand("Logs.SP_UpdExportLogs", cnx))
+                    {
+                        cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@TablaLog", System.Data.SqlDbType.NVarChar).Value = tabla;
+                        cmd.Parameters.Add("@Ids", System.Data.SqlDbType.NVarChar).Value = ids;
 
-                    await cmd.ExecuteNonQueryAsync();
-                }
+                        await cmd.ExecuteNonQueryAsync();
+                    }
                 await cnx.CloseAsync();
             }
         }
@@ -153,14 +160,15 @@ namespace DatawareConfig.Helpers
             long Id = 0;
             using (SqlConnection cnx = new SqlConnection(cnxStr))
             {
-                await cnx.OpenAsync();
-                using (SqlCommand cmd = new SqlCommand("Logs.SP_GetId_Modulo", cnx))
-                {
-                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                    cmd.Parameters.Add("@Nombre", System.Data.SqlDbType.NVarChar).Value = NombreModulo;
+                if (cnx.State == ConnectionState.Closed)
+                    await cnx.OpenAsync();
+                    using (SqlCommand cmd = new SqlCommand("Logs.SP_GetId_Modulo", cnx))
+                    {
+                        cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@Nombre", System.Data.SqlDbType.NVarChar).Value = NombreModulo;
 
-                    Id = Convert.ToInt64(await cmd.ExecuteScalarAsync());
-                }
+                        Id = Convert.ToInt64(await cmd.ExecuteScalarAsync());
+                    }
                 await cnx.CloseAsync();
             }
             return Id;
