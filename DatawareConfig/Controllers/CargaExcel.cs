@@ -17,6 +17,7 @@ namespace DatawareConfig.Controllers
 {
     public class CargaExcel : Controller
     {
+        private string _uidUser = "9C0A37F3-937E-429A-AE5A-DF72885002C0"; //Para Pruebas
         public IActionResult Index()
         {
             return View();
@@ -32,8 +33,6 @@ namespace DatawareConfig.Controllers
             var lista = new List<ColoniaEntity>();
             using (var reader = ExcelDataReader.ExcelReaderFactory.CreateReader(stream))
             {
-                //var result = reader.AsDataSet();
-                //DataSet dataset = reader.AsDataSet();
                 var result = reader.AsDataSet(new ExcelDataSetConfiguration()
                 {
                     ConfigureDataTable = (_) => new ExcelDataTableConfiguration()
@@ -96,14 +95,41 @@ namespace DatawareConfig.Controllers
 
                 try
                 {
-                    if (resultInsert > 1)
+                    if(registrosInsertados > 0)
+                    {
+                        LogsDataware.LogUsuario(
+                        _uidUser,
+                        await LogsDataware.GetModuloId("Configuración y Tablas"),
+                        LogsDataware.OKInsertar,
+                        "CargaExcelColonias",
+                        "TotalFilas: " + registrosInsertados);
+                        return new OkObjectResult(ResponseHelper.Response(200, registrosInsertados, Messages.SuccessMsgUp));
+                    }
+                    else
+                    {
+                        LogsDataware.LogUsuario(
+                        _uidUser,
+                        await LogsDataware.GetModuloId("Configuración y Tablas"),
+                        LogsDataware.ERRORInsertar,
+                        "CargaExcelColonias",
+                        "TotalFilas: 0");
+                        return new ObjectResult(ResponseHelper.Response(403, null, Messages.ErrorUpLoad)) { StatusCode = 403 };
+                    }
+
+                    /*if (resultInsert > 1)
                         return new ObjectResult(ResponseHelper.Response(403, null, Messages.ErrorUpLoad)) { StatusCode = 403 };
                         
-                    return new OkObjectResult(ResponseHelper.Response(200, registrosInsertados, Messages.SuccessMsgUp));
+                    return new OkObjectResult(ResponseHelper.Response(200, registrosInsertados, Messages.SuccessMsgUp));*/
                 }
                 catch (Exception ex)
                 {
-                    throw;
+                    LogsDataware.LogUsuario(
+                    _uidUser,
+                    await LogsDataware.GetModuloId("Configuración y Tablas"),
+                    LogsDataware.ERRORInsertar,
+                    "CargaExcelColonias",
+                    ex.Message);
+                    return new ObjectResult(ResponseHelper.Response(403, null, ex.Message)) { StatusCode = 403 };
                 }
                     
             }

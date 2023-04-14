@@ -22,7 +22,7 @@ namespace DatawareConfig.Controllers
     public class IntelimotorController : Controller
     {
         //private readonly DbContext _dbContext;
-
+        private string _uidUser = "9C0A37F3-937E-429A-AE5A-DF72885002C0"; //Para Pruebas
         private string _urlIntelimotor;
         private string _apiKey;
         private string _apiSecret;
@@ -43,6 +43,14 @@ namespace DatawareConfig.Controllers
             var syncIdTA = LogSystem.GetGuidDb();
             var identifierTA = Convert.ToInt64(DateTime.Now.ToString("yyyyMMddHHmmss"));
             string useridTA = "admin@admin.com";
+
+            //Log procesos automaticos
+            long LogsInterfazIDTA = 0;
+            if (!isManual)
+            {
+                LogsInterfazIDTA = await LogsDataware.LogInterfaz(2,LogsDataware.OKActualizar,"Inicia Descarga datos Intelimotor TA","IdTA: " + syncIdTA);
+            }
+
             LogSystem.SyncsCatIntelimotor(syncIdTA, identifierTA, isManual ? "Manual TA" : "Automático TA", useridTA); //Log Proceso Manual
             LogSystem.SyncsDetailCatIntelimotor(syncIdTA, identifierTA, "Descarga datos Intelimotor", "0", "-");
 
@@ -54,11 +62,38 @@ namespace DatawareConfig.Controllers
                 string resultadoApi;
                 if (_httpResponseMessageEntTA.StatusCode == HttpStatusCode.OK)
                 {
+                    if (isManual)
+                    {
+                        LogsDataware.LogUsuario(
+                        _uidUser,
+                        await LogsDataware.GetModuloId("Configuración y Tablas"),
+                        LogsDataware.OKActualizar,
+                        "SyncCatIntelimotor TA",
+                        "Descarga de datos completa");
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(LogsInterfazIDTA,"Sync Tipo Adquisicion","Descarga","Descarga completa");
+                    }
                     resultadoApi = "Completado con éxito";
                 }
                 else
                 {
-                    SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, _httpResponseMessageEntTA.ReasonPhrase);
+                    if (isManual)
+                    {
+                        LogsDataware.LogUsuario(
+                        _uidUser,
+                        await LogsDataware.GetModuloId("Configuración y Tablas"),
+                        LogsDataware.ERRORActualizar,
+                        "SyncCatIntelimotor TA",
+                        "Error al descargar datos");
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(LogsInterfazIDTA, "Sync Tipo Adquisicion", "Descarga", "ERROR Descarga no completada");
+                    }
+                    //SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, _httpResponseMessageEntTA.ReasonPhrase);
+                    SendMailHelper.Notificaciones(1, "No se completó la descarga Tipo Adquisición, " + _httpResponseMessageEntTA.StatusCode.ToString());
                     resultadoApi = _httpResponseMessageEntTA.StatusCode.ToString();
                 }
                 LogSystem.SyncsDetailCatIntelimotor(syncIdTA, identifierTA, "Termina descarga datos Intelimotor", resultTA.data.Count.ToString(), resultadoApi);
@@ -73,17 +108,59 @@ namespace DatawareConfig.Controllers
                 var registros = await InsertarRegistrosTA.InsTAIntelimotor(prams);
 
                 if (registros == 0)
+                {
+                    if (isManual)
+                    {
+                        LogsDataware.LogUsuario(
+                        _uidUser,
+                        await LogsDataware.GetModuloId("Configuración y Tablas"),
+                        LogsDataware.ERRORActualizar,
+                        "SyncCatIntelimotor TA",
+                        "La sincronización falló");
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(LogsInterfazIDTA, "Sync Tipo Adquisicion", "Actualizar", "La sincronización falló");
+                    }
                     SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, "La sincronización falló");
-                //return new ObjectResult(ResponseHelper.Response(403, null, Messages.Error)) { StatusCode = 403 };
-
-                SendMailHelper.Send("OK", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, "La sincronización se realizó con éxito");
-                //return new OkObjectResult(ResponseHelper.Response(200, result.data, Messages.SuccessMsg));
-
+                }
+                else
+                {
+                    if (isManual)
+                    {
+                        LogsDataware.LogUsuario(
+                        _uidUser,
+                        await LogsDataware.GetModuloId("Configuración y Tablas"),
+                        LogsDataware.OKActualizar,
+                        "SyncCatIntelimotor TA",
+                        "La sincronización se realizó con éxito");
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(LogsInterfazIDTA, "Sync Tipo Adquisicion", "Actualizar", "La sincronización se realizó con éxito");
+                    }
+                    //SendMailHelper.Send("OK", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, "La sincronización se realizó con éxito");
+                }
+                
             }
             catch (Exception e)
             {
-                SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, "La sincronización falló. "+e.Message);
-                //return new OkObjectResult(ResponseHelper.Response(500, null, e.Message)) { StatusCode = 500 };
+                //SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: " + (isManual ? "MTA-" : "ATA-") + identifierTA, "La sincronización falló. "+e.Message);
+                if (isManual)
+                {
+                    LogsDataware.LogUsuario(
+                    _uidUser,
+                    await LogsDataware.GetModuloId("Configuración y Tablas"),
+                    LogsDataware.ERRORActualizar,
+                    "SyncCatIntelimotor TA",
+                    e.Message);
+                }
+                else
+                {
+                    LogsDataware.LogInterfazDetalle(LogsInterfazIDTA, "Sync Tipo Adquisicion", "Actualizar", e.Message);
+                }
+                SendMailHelper.Notificaciones(1, "No se completó la sincronización Tipo Adquisición, " + e.Message);
+
                 throw;
             }
             #endregion
@@ -92,6 +169,12 @@ namespace DatawareConfig.Controllers
             var syncId = LogSystem.GetGuidDb();
             var identifier = Convert.ToInt64(DateTime.Now.ToString("yyyyMMddHHmmss"));
             string userid = "admin@admin.com";
+
+            long LogsInterfazIDMO = 0;
+            if (!isManual)
+            {
+                LogsInterfazIDMO = await LogsDataware.LogInterfaz(2, LogsDataware.OKActualizar, "Inicia Descarga datos Intelimotor MO", "IdMO: " + syncId);
+            }
 
             LogSystem.SyncsCatIntelimotor(syncId, identifier, isManual ? "Manual MO": "Automático MO", userid); //Log Proceso Manual
             LogSystem.SyncsDetailCatIntelimotor(syncId, identifier, "Descarga datos Intelimotor", "0", "-");
@@ -105,13 +188,38 @@ namespace DatawareConfig.Controllers
                 string resultadoApi;
                 if (_httpResponseMessageEnt.StatusCode == HttpStatusCode.OK)
                 {
+                    if (isManual)
+                    {
+                        LogsDataware.LogUsuario(
+                        _uidUser,
+                        await LogsDataware.GetModuloId("Configuración y Tablas"),
+                        LogsDataware.OKActualizar,
+                        "SyncCatIntelimotor MO",
+                        "Descarga de datos completa");
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(LogsInterfazIDMO, "Sync Modelos", "Descarga", "Descarga completa");
+                    }
                     resultadoApi = "Completado con éxito";
-                    //SendMailHelper.Send("OK", "Descarga Intelimotor - #Proceso: MMO-" + identifier, "La descarga de datos se ha completado con éxito");
-                    //Notificaciones.Enviar("OK", "Descarga Intelimotor - #Proceso: MMO-" + identifier, "La descarga de datos se ha completado con éxito");
                 }
                 else
                 {
-                    SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: " + (isManual ? "MMO-" : "AMO-") + identifier, _httpResponseMessageEnt.ReasonPhrase);
+                    if (isManual)
+                    {
+                        LogsDataware.LogUsuario(
+                        _uidUser,
+                        await LogsDataware.GetModuloId("Configuración y Tablas"),
+                        LogsDataware.ERRORActualizar,
+                        "SyncCatIntelimotor MO",
+                        "Error al descargar datos");
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(LogsInterfazIDMO, "Sync Modelos", "Descarga", "ERROR Descarga no completada");
+                    }
+                    //SendMailHelper.Send("ERROR", "Descarga Intelimotor - #Proceso: " + (isManual ? "MMO-" : "AMO-") + identifier, _httpResponseMessageEnt.ReasonPhrase);
+                    SendMailHelper.Notificaciones(1, "No se completó la descarga Modelos, " + _httpResponseMessageEntTA.StatusCode.ToString());
                     resultadoApi = _httpResponseMessageEnt.StatusCode.ToString();
                 }
                 LogSystem.SyncsDetailCatIntelimotor(syncId, identifier, "Termina descarga datos Intelimotor", result.trims.Count.ToString(), resultadoApi);
@@ -126,14 +234,58 @@ namespace DatawareConfig.Controllers
                 var registros = await InsertarRegistros.InsCatIntelimotor(prams);
                 
                 if (registros == 0)
+                {
+                    if (isManual)
+                    {
+                        LogsDataware.LogUsuario(
+                        _uidUser,
+                        await LogsDataware.GetModuloId("Configuración y Tablas"),
+                        LogsDataware.ERRORActualizar,
+                        "SyncCatIntelimotor MO",
+                        "La sincronización falló");
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(LogsInterfazIDMO, "Sync Modelos", "Actualizar", "La sincronización falló");
+                    }
                     return new ObjectResult(ResponseHelper.Response(403, null, Messages.Error)) { StatusCode = 403 };
-
-                SendMailHelper.Send("OK", "Descarga Intelimotor - #Proceso: " + (isManual ? "MMO-" : "AMO-") + identifier, "La sincronización se realizó con éxito");
-                return new OkObjectResult(ResponseHelper.Response(200, result.trims[0], Messages.SuccessMsg));
-
+                }
+                else
+                {
+                    if (isManual)
+                    {
+                        LogsDataware.LogUsuario(
+                        _uidUser,
+                        await LogsDataware.GetModuloId("Configuración y Tablas"),
+                        LogsDataware.OKActualizar,
+                        "SyncCatIntelimotor MO",
+                        "La sincronización se realizó con éxito");
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(LogsInterfazIDMO, "Sync Modelos", "Actualizar", "La sincronización se realizó con éxito");
+                    }
+                    //SendMailHelper.Send("OK", "Descarga Intelimotor - #Proceso: " + (isManual ? "MMO-" : "AMO-") + identifier, "La sincronización se realizó con éxito");
+                    return new OkObjectResult(ResponseHelper.Response(200, result.trims[0], Messages.SuccessMsg));
+                }
+                
             }
             catch (Exception ex)
             {
+                if (isManual)
+                {
+                    LogsDataware.LogUsuario(
+                    _uidUser,
+                    await LogsDataware.GetModuloId("Configuración y Tablas"),
+                    LogsDataware.ERRORActualizar,
+                    "SyncCatIntelimotor MO",
+                    ex.Message);
+                }
+                else
+                {
+                    LogsDataware.LogInterfazDetalle(LogsInterfazIDMO, "Sync Modelos", "Actualizar", ex.Message);
+                }
+                SendMailHelper.Notificaciones(1, "No se completó la sincronización Modelos, " + ex.Message);
                 return new OkObjectResult(ResponseHelper.Response(500, null, ex.Message)) { StatusCode = 500 };
                 throw;
             }
