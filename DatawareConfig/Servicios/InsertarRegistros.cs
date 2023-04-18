@@ -67,7 +67,7 @@ namespace DatawareConfig.Servicios
                         cnx.Open();
 
                     resultados = await cnx.ExecuteScalarAsync<int>(
-                        "[Catalogos].[SP_Add_Modelos]",
+                        "Catalogos.SP_Sync_InvCatAutos",
                         param: parameters, commandTimeout: 1500,
                         commandType: CommandType.StoredProcedure);
 

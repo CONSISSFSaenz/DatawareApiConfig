@@ -48,7 +48,10 @@ namespace DatawareConfig.Helpers
                                     var toEmails = obj.Correos.Split(',');
                                     foreach (var toEmail in toEmails)
                                     {
-                                        Enviar(obj.TipoCorreo, toEmail, obj.Prioridad, obj.Contenido.Replace("{ContainerMail}", contenidoMsj));
+                                        var containerTipoCorreo = obj.Contenido.Replace("{ContainerTipoCorreo}", obj.TipoCorreo);
+                                        var containerHref = containerTipoCorreo.Replace("{ContainerHref}", "#");
+                                        var containerDescripcion = containerHref.Replace("{ContainerDescripcion}", contenidoMsj);
+                                        Enviar(obj.TipoCorreo, toEmail, obj.Prioridad, containerDescripcion);
                                     }
 
                                 }
