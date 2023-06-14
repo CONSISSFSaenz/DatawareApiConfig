@@ -1,4 +1,6 @@
-﻿using MailKit.Net.Smtp;
+﻿using Dapper;
+using DatawareConfig.Models;
+using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Data.SqlClient;
 using MimeKit;
@@ -16,6 +18,96 @@ namespace DatawareConfig.Helpers
             public string? Contenido { get; set; }
             public bool? Status { get; set; }
         }
+
+        public static async Task<int> AltaInventarioIntelimotor(long identifier)
+        {
+            string cnxStr = LogsDataware.CnxStrDb();
+            string FechaHora = TimeZoneInfo.ConvertTime(DateTime.Now, TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time (Mexico)")).ToString("yyyy-MM-dd HH:mm:ss");
+            var filasTablaHtml = "";
+            //string FechaAdquisicion = "";
+            using (SqlConnection cnx = new SqlConnection(cnxStr))
+            {
+                if (cnx.State == ConnectionState.Closed)
+                    await cnx.OpenAsync();
+                var sql = "SELECT * FROM Sistema.VWSyncInventarioIntelimotorAltaFueraDataware WHERE ValidacionVIN = 1 AND ValidacionColor = 1 AND ValidacionMMYV = 4 AND Identifier=" + identifier;
+                var rows = await cnx.QueryAsync<SyncInventarioAltaFueraDataware>(sql);
+                var total = rows.Count();
+                foreach(var row in rows)
+                {
+                    string FechaAdquisicion = row.Fecha + " " + row.Hora;
+                    filasTablaHtml += "<tr><td>" + row.Vin + "</td><td>" + row.NombreMarca + "</td><td>" + row.NombreModelo + "</td><td>" + row.NombreYear + "</td><td>" + row.NombreVersion 
+                        + "</td><td>" + row.CVColorValue + "</td><td>" + FechaAdquisicion.Replace("00:00:00","") + "</td></tr>";
+                }
+
+                var txtHeaderHtml = "<p>Se ha ejecutado el proceso de Sync del Inventario de Intelimotor, se encontró que hay "+total+" vehículos dados de alta.</p><p>Fecha de Ejecución: "+FechaHora+" </p>";
+
+                var tablaHtml = "<table role='presentation' style='width:100%;border:1 solid #000;background:#FFF'>"
+                    + "<tr><td>VIN</td><td>MARCA</td><td>MODELO</td><td>AÑO</td><td>VERSION</td><td>COLOR</td><td>FECHA ADQUISICION</td><tr>";
+
+                var txtFooterHtml = "</table><br>";
+
+                await cnx.CloseAsync();
+                if(total > 0)
+                {
+                    var Html = txtHeaderHtml + tablaHtml + filasTablaHtml + txtFooterHtml;
+
+                    Notificaciones(3, Html);
+                }
+                
+                return total;
+            }
+        }
+
+        public static async Task<int> AltaInventarioIntelimotorErrores(long identifier)
+        {
+            string cnxStr = LogsDataware.CnxStrDb();
+            string FechaHora = TimeZoneInfo.ConvertTime(DateTime.Now, TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time (Mexico)")).ToString("yyyy-MM-dd HH:mm:ss");
+            var filasTablaHtml = "";
+            //string FechaAdquisicion = "";
+            using (SqlConnection cnx = new SqlConnection(cnxStr))
+            {
+                if (cnx.State == ConnectionState.Closed)
+                    await cnx.OpenAsync();
+                var sql = "SELECT * FROM Sistema.VWSyncInventarioIntelimotorAltaFueraDataware WHERE (ValidacionVIN = 0 OR ValidacionColor = 0 OR ValidacionMMYV < 4) AND Identifier=" + identifier;
+                var rows = await cnx.QueryAsync<SyncInventarioAltaFueraDataware>(sql);
+                var total = rows.Count();
+                foreach (var row in rows)
+                {
+                    string FechaAdquisicion = row.Fecha + " " + row.Hora;
+                    filasTablaHtml += "<tr><td>" + row.Vin + "</td><td>" + row.NombreMarca + "</td><td>" + row.NombreModelo + "</td><td>" + row.NombreYear + "</td><td>" + row.NombreVersion
+                        + "</td><td>" + row.CVColorValue + "</td><td>" + FechaAdquisicion.Replace("00:00:00", "") + "</td></tr>";
+                }
+
+                var txtHeaderHtml = "<p>Se ha ejecutado el proceso de Sync del Inventario de Intelimotor, se encontró que hay " + total + " vehículos dados de alta con errores.</p><p>Fecha de Ejecución: " + FechaHora + " </p>";
+
+                var tablaHtml = "<table role='presentation' style='width:100%;border:1 solid #000;background:#FFF'>"
+                    + "<tr><td>VIN</td><td>MARCA</td><td>MODELO</td><td>AÑO</td><td>VERSION</td><td>COLOR</td><td>FECHA ADQUISICION</td><tr>";
+
+                var txtFooterHtml = "</table><br>";
+
+                await cnx.CloseAsync();
+                if (total > 0)
+                {
+                    var Html = txtHeaderHtml + tablaHtml + filasTablaHtml + txtFooterHtml;
+
+                    Notificaciones(2, Html);
+                }
+
+                return total;
+            }
+        }
+
+
+
+        public static async void ErrorSyncInventarioIntelimotor(string contenidoMsj)
+        {
+            string cnxStr = LogsDataware.CnxStrDb();
+            string FechaHora = TimeZoneInfo.ConvertTime(DateTime.Now, TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time (Mexico)")).ToString("yyyy-MM-dd HH:mm:ss");
+            string Html = "<p>Se ha ejecutado el proceso de Sync del Inventario de Intelimotor.</p><p>Fecha de Ejecución: " + FechaHora + " </p>"
+                + "<p>Detalles:</p><p>" + contenidoMsj + "</p>";
+            Notificaciones(2, Html);
+        }
+
         public static async void Notificaciones(long tipoCorreoId, string contenidoMsj)
         {
             string cnxStr = LogsDataware.CnxStrDb();
@@ -49,8 +141,8 @@ namespace DatawareConfig.Helpers
                                     foreach (var toEmail in toEmails)
                                     {
                                         var containerTipoCorreo = obj.Contenido.Replace("{ContainerTipoCorreo}", obj.TipoCorreo);
-                                        var containerHref = containerTipoCorreo.Replace("{ContainerHref}", "#");
-                                        var containerDescripcion = containerHref.Replace("{ContainerDescripcion}", contenidoMsj);
+                                        //var containerHref = containerTipoCorreo.Replace("{ContainerHref}", "#");
+                                        var containerDescripcion = containerTipoCorreo.Replace("{ContainerDescripcion}", contenidoMsj);
                                         Enviar(obj.TipoCorreo, toEmail, obj.Prioridad, containerDescripcion);
                                     }
 
@@ -96,7 +188,7 @@ namespace DatawareConfig.Helpers
 
             string remitente = "dataware@datamovil.com";
             string usuariomail = "dataware@datamovil.com";
-            string destinatario = "daniel.lopez@consiss.com";
+            string destinatario = "alex.saenz@consiss.com";
             string password = "cSe7m4N9sK";
             string host = "mail.datamovil.com";
             int port = 25;

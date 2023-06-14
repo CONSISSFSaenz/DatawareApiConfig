@@ -22,7 +22,7 @@ namespace DatawareConfig.Controllers
         {
             return View();
         }        
-        [HttpPost("cargaExcel")]
+        [HttpPost("cargaExcelTest")]
         public async Task<IActionResult> Upload(IFormFile file)
         {
             string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
@@ -136,5 +136,141 @@ namespace DatawareConfig.Controllers
 
             
         }
+
+        [HttpPost("cargaExcel")]
+        public async Task<IActionResult> UploadSepomex(IFormFile file)
+        {
+            string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
+
+            var stream = file.OpenReadStream();
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            int resultInsert = 0;
+            var lista = new List<ColoniaEntity>();
+            using (var reader = ExcelDataReader.ExcelReaderFactory.CreateReader(stream))
+            {
+                var result = reader.AsDataSet(new ExcelDataSetConfiguration()
+                {
+                    ConfigureDataTable = (_) => new ExcelDataTableConfiguration()
+                    {
+                        UseHeaderRow = true
+                    }
+                });
+                DataTable table = result.Tables[0];
+                var sheet1 = table.TableName;
+                var dt = new System.Data.DataTable();
+                dt.Columns.Add("Colonia", typeof(string)).MaxLength = 200;
+                dt.Columns.Add("Municipio", typeof(string)).MaxLength = 200;
+                dt.Columns.Add("Estado", typeof(string)).MaxLength = 200;
+                dt.Columns.Add("CodigoPostal", typeof(long));
+                long registrosInsertados = 0;
+                foreach (DataTable item in result.Tables)
+                {
+                    if (item.TableName != "Nota")
+                    {
+                        foreach (var r in item.AsEnumerable())
+                        {
+                            dt.Rows.Add(
+                                    r[1].ToString(),
+                                    r[3].ToString(),
+                                    r[4].ToString(),
+                                    Convert.ToInt64(r[0].ToString())
+                                );
+                            registrosInsertados++;
+                        }
+
+                    }
+
+                }
+
+                try
+                {
+                    if (registrosInsertados > 0)
+                    {
+                        int resultados;
+                        using (SqlConnection cnx = new SqlConnection(cnxStr))
+                        {
+                            await cnx.OpenAsync();
+
+                            var parameters = new
+                            {
+                                projects = dt.AsTableValuedParameter("Catalogos.SepomexTmp")
+                            };
+
+                            if (cnx.State == ConnectionState.Closed)
+                                cnx.Open();
+
+                            resultados = await cnx.ExecuteScalarAsync<int>(
+                                "Catalogos.SP_Add_Sepomex",
+                                param: parameters,commandTimeout:1500,
+                                commandType: CommandType.StoredProcedure
+                                );
+
+                            await cnx.CloseAsync();
+                        }
+
+                        if(resultados > 0)
+                        {
+                            var msjResultado = "";
+                            if(resultados == registrosInsertados)
+                            {
+                                msjResultado = "Sin cambios registrados";
+                                return new OkObjectResult(ResponseHelper.Response(200, msjResultado, Messages.SuccessMsgUp));
+                            }
+                            else if(resultados > registrosInsertados)
+                            {
+                                msjResultado = "Se insertaron: " + registrosInsertados + " nuevos registros";
+                                return new OkObjectResult(ResponseHelper.Response(200, msjResultado, Messages.SuccessMsgUp));
+                            }
+                            else
+                            {
+                                msjResultado = "Total registros en Excel: " + registrosInsertados;
+                                return new OkObjectResult(ResponseHelper.Response(200, msjResultado, Messages.SuccessMsgUp));
+                            }
+                            LogsDataware.LogUsuario(
+                            _uidUser,
+                            await LogsDataware.GetModuloId("Configuración y Tablas"),
+                            LogsDataware.OKInsertar,
+                            "CargaExcelColonias",
+                            msjResultado);
+                        }
+                        else
+                        {
+                            LogsDataware.LogUsuario(
+                            _uidUser,
+                            await LogsDataware.GetModuloId("Configuración y Tablas"),
+                            LogsDataware.ERRORInsertar,
+                            "CargaExcelColonias",
+                            "TotalFilas: 0");
+                            return new ObjectResult(ResponseHelper.Response(403, null, Messages.ErrorUpLoad)) { StatusCode = 403 };
+                        }
+                    }
+                    else
+                    {
+                        LogsDataware.LogUsuario(
+                        _uidUser,
+                        await LogsDataware.GetModuloId("Configuración y Tablas"),
+                        LogsDataware.ERRORInsertar,
+                        "CargaExcelColonias",
+                        "TotalFilas: 0");
+                        return new ObjectResult(ResponseHelper.Response(403, null, Messages.ErrorUpLoad)) { StatusCode = 403 };
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    LogsDataware.LogUsuario(
+                    _uidUser,
+                    await LogsDataware.GetModuloId("Configuración y Tablas"),
+                    LogsDataware.ERRORInsertar,
+                    "CargaExcelColonias",
+                    ex.Message);
+                    return new ObjectResult(ResponseHelper.Response(403, null, ex.Message)) { StatusCode = 403 };
+                }
+
+            }
+
+
+        }
+
     }
 }
