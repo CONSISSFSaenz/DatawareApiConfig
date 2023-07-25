@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using DatawareConfig.DTOs;
 using DatawareConfig.Helpers;
+using DatawareConfig.Utilities;
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json.Linq;
 using System.Text;
@@ -13,55 +14,59 @@ namespace DatawareConfig.Servicios
         {
             try
             {
-                string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=900000";
+                string cnxStr = LogsDataware.CnxStrDb();
                 int resultados;
-                int totalRegistros = p.DSI.data.Count() - 1;
+                int totalRegistros = p.DSI.Count() - 1;
                 int filaRegistro = 1;
 
                 #region PropsCustomField
                 string? CFColorId = "614b78e4b969910013d205a6";
-                string? CFColorName = string.Empty;
+                string? CFColorName = "Color";
                 string? CVColorValue = string.Empty;
 
                 string? CFTenenciaId = "614b78ffec3914001383d217";
-                string? CFTenenciaName = string.Empty;
+                string? CFTenenciaName = "Tenencia";
                 string? CVTenenciaValue = string.Empty;
 
                 string? CFCambioPropId = "614b790a5958f0001334da5d";
-                string? CFCambioPropName = string.Empty;
+                string? CFCambioPropName = "Cambio de Prop.";
                 string? CVCambioPropValue = string.Empty;
 
                 string? CFSeguroId = "614b78f4ec3914001383d214";
-                string? CFSeguroName = string.Empty;
+                string? CFSeguroName = "Seguro";
                 string? CVSeguroValue = string.Empty;
 
                 string? CFTipoCompraId = "614b78b2ec3914001383cd8b";
-                string? CFTipoCompraName = string.Empty;
+                string? CFTipoCompraName = "Tipo de Compra";
                 string? CVTipoCompraValue = string.Empty;
 
                 string? CFProveedorId = "614c98dd4527dc0013cfddb8";
-                string? CFProveedorName = string.Empty;
+                string? CFProveedorName = "Proveedor";
                 string? CVProveedorValue = string.Empty;
 
                 string? CFNomPagoId = "614c9c1b4527dc0013d00e56";
-                string? CFNomPagoName = string.Empty;
+                string? CFNomPagoName = "Nom. de Pago";
                 string? CVNomPagoValue = string.Empty;
 
                 string? CFTipoPagoId = "614c9928e0a8580013f69da4";
-                string? CFTipoPagoName = string.Empty;
+                string? CFTipoPagoName = "Tipo de Pago";
                 string? CVTipoPagoValue = string.Empty;
 
                 string? CFNumPagoId = "614c9de44d1ba2001352cda8";
-                string? CFNumPagoName = string.Empty;
+                string? CFNumPagoName = "Numero de Pago";
                 string? CVNumPagoValue = string.Empty;
 
                 string? CFTipoFacturaId = "614c9eb6b901f90013f737ad";
-                string? CFTipoFacturaName = string.Empty;
+                string? CFTipoFacturaName = "Tipo de Factura";
                 string? CVTipoFacturaValue = string.Empty;
 
                 string? CFMontoFinanciadoId = "614b7794b969910013d1ef8e";
-                string? CFMontoFinanciadoName = string.Empty;
+                string? CFMontoFinanciadoName = "Monto Financiado";
                 string? CVMontoFinanciadoValue = string.Empty;
+
+                string? CFUbicacionId = "614cfe36e62db00012f16aff";
+                string? CFUbicacionName = "Ubicacion";
+                string? CVUbicacionValue = string.Empty;
                 #endregion
 
                 #region PropsMarcaModeloYearVersion
@@ -127,6 +132,9 @@ namespace DatawareConfig.Servicios
                 dt.Columns.Add("CFMontoFinanciadoId", typeof(string)).MaxLength = 100;
                 dt.Columns.Add("CFMontoFinanciadoName", typeof(string)).MaxLength = 100;
                 dt.Columns.Add("CVMontoFinanciadoValue", typeof(string)).MaxLength = 100;
+                dt.Columns.Add("CFUbicacionId", typeof(string)).MaxLength = 100;
+                dt.Columns.Add("CFUbicacionName", typeof(string)).MaxLength = 100;
+                dt.Columns.Add("CVUbicacionValue", typeof(string)).MaxLength = 100;
                 dt.Columns.Add("ListPrice", typeof(long));
                 dt.Columns.Add("StatusIntelimotor", typeof(string)).MaxLength = 100;
                 dt.Columns.Add("SellChannel", typeof(string)).MaxLength = 100;
@@ -139,93 +147,101 @@ namespace DatawareConfig.Servicios
                 for (int i = 0; i<= totalRegistros; i++)
                 {
                     #region CustomValues
-                    for (int j = 0; j < p.DSI.data[i].customValues.Count(); j++)
+                    for (int j = 0; j < p.DSI[i].customValues.Count(); j++)
                     {
                         #region CFColor
-                        if (p.DSI.data[i].customValues[j].CustomField.Id == CFColorId)
+                        if (p.DSI[i].customValues[j].CustomField.Name == CFColorName)
                         {
-                            CFColorName = p.DSI.data[i].customValues[j].CustomField.Name;
-                            CVColorValue = Convert.ToString(p.DSI.data[i].customValues[j].Value);
+                            CFColorName = p.DSI[i].customValues[j].CustomField.Name;
+                            CVColorValue = Convert.ToString(p.DSI[i].customValues[j].Value);
                         }
                         #endregion
 
                         #region CFTenencia
-                        else if (p.DSI.data[i].customValues[j].CustomField.Id == CFTenenciaId)
+                        else if (p.DSI[i].customValues[j].CustomField.Name == CFTenenciaName)
                         {
-                            CFTenenciaName = p.DSI.data[i].customValues[j].CustomField.Name;
-                            CVTenenciaValue = Convert.ToString(p.DSI.data[i].customValues[j].Value);
+                            CFTenenciaName = p.DSI[i].customValues[j].CustomField.Name;
+                            CVTenenciaValue = Convert.ToString(p.DSI[i].customValues[j].Value);
                         }
                         #endregion
 
                         #region CFCambioProp
-                        else if (p.DSI.data[i].customValues[j].CustomField.Id == CFCambioPropId)
+                        else if (p.DSI[i].customValues[j].CustomField.Name == CFCambioPropName)
                         {
-                            CFTenenciaName = p.DSI.data[i].customValues[j].CustomField.Name;
-                            CVTenenciaValue = Convert.ToString(p.DSI.data[i].customValues[j].Value);
+                            CFTenenciaName = p.DSI[i].customValues[j].CustomField.Name;
+                            CVTenenciaValue = Convert.ToString(p.DSI[i].customValues[j].Value);
                         }
                         #endregion
 
                         #region CFSeguro
-                        else if (p.DSI.data[i].customValues[j].CustomField.Id == CFSeguroId)
+                        else if (p.DSI[i].customValues[j].CustomField.Name == CFSeguroName)
                         {
-                            CFSeguroName = p.DSI.data[i].customValues[j].CustomField.Name;
-                            CVSeguroValue = Convert.ToString(p.DSI.data[i].customValues[j].Value);
+                            CFSeguroName = p.DSI[i].customValues[j].CustomField.Name;
+                            CVSeguroValue = Convert.ToString(p.DSI[i].customValues[j].Value);
                         }
                         #endregion
 
                         #region CFTipoCompra
-                        else if (p.DSI.data[i].customValues[j].CustomField.Id == CFTipoCompraId)
+                        else if (p.DSI[i].customValues[j].CustomField.Name == CFTipoCompraName)
                         {
-                            CFTipoCompraName = p.DSI.data[i].customValues[j].CustomField.Name;
-                            CVTipoCompraValue = Convert.ToString(p.DSI.data[i].customValues[j].Value);
+                            CFTipoCompraName = p.DSI[i].customValues[j].CustomField.Name;
+                            CVTipoCompraValue = FuncUtils.Reemplazar(Convert.ToString(p.DSI[i].customValues[j].Value));
                         }
                         #endregion
 
                         #region CFProveedor
-                        else if (p.DSI.data[i].customValues[j].CustomField.Id == CFProveedorId)
+                        else if (p.DSI[i].customValues[j].CustomField.Name == CFProveedorName)
                         {
-                            CFProveedorName = p.DSI.data[i].customValues[j].CustomField.Name;
-                            CVProveedorValue = Convert.ToString(p.DSI.data[i].customValues[j].Value);
+                            CFProveedorName = p.DSI[i].customValues[j].CustomField.Name;
+                            CVProveedorValue = Convert.ToString(p.DSI[i].customValues[j].Value);
                         }
                         #endregion
 
                         #region CFNomPago
-                        else if (p.DSI.data[i].customValues[j].CustomField.Id == CFNomPagoId)
+                        else if (p.DSI[i].customValues[j].CustomField.Name == CFNomPagoName)
                         {
-                            CFNomPagoName = p.DSI.data[i].customValues[j].CustomField.Name;
-                            CVNomPagoValue = Convert.ToString(p.DSI.data[i].customValues[j].Value);
+                            CFNomPagoName = p.DSI[i].customValues[j].CustomField.Name;
+                            CVNomPagoValue = Convert.ToString(p.DSI[i].customValues[j].Value);
                         }
                         #endregion
 
                         #region CFTipoPago
-                        else if (p.DSI.data[i].customValues[j].CustomField.Id == CFTipoPagoId)
+                        else if (p.DSI[i].customValues[j].CustomField.Name == CFTipoPagoName)
                         {
-                            CFTipoPagoName = p.DSI.data[i].customValues[j].CustomField.Name;
-                            CVTipoPagoValue = Convert.ToString(p.DSI.data[i].customValues[j].Value);
+                            CFTipoPagoName = p.DSI[i].customValues[j].CustomField.Name;
+                            CVTipoPagoValue = FuncUtils.Reemplazar(Convert.ToString(p.DSI[i].customValues[j].Value));
                         }
                         #endregion
 
                         #region CFNumPago
-                        else if (p.DSI.data[i].customValues[j].CustomField.Id == CFNumPagoId)
+                        else if (p.DSI[i].customValues[j].CustomField.Name == CFNumPagoName)
                         {
-                            CFNumPagoName = p.DSI.data[i].customValues[j].CustomField.Name;
-                            CVNumPagoValue = Convert.ToString(p.DSI.data[i].customValues[j].Value);
+                            CFNumPagoName = p.DSI[i].customValues[j].CustomField.Name;
+                            CVNumPagoValue = Convert.ToString(p.DSI[i].customValues[j].Value);
                         }
                         #endregion
 
                         #region CFTipoFactura
-                        else if (p.DSI.data[i].customValues[j].CustomField.Id == CFTipoFacturaId)
+                        else if (p.DSI[i].customValues[j].CustomField.Name == CFTipoFacturaName)
                         {
-                            CFTipoFacturaName = p.DSI.data[i].customValues[j].CustomField.Name;
-                            CVTipoFacturaValue = Convert.ToString(p.DSI.data[i].customValues[j].Value);
+                            CFTipoFacturaName = p.DSI[i].customValues[j].CustomField.Name;
+                            CVTipoFacturaValue = FuncUtils.Reemplazar(Convert.ToString(p.DSI[i].customValues[j].Value));
                         }
                         #endregion
 
                         #region CFMontoFinanciado
-                        else if (p.DSI.data[i].customValues[j].CustomField.Id == CFMontoFinanciadoId)
+                        else if (p.DSI[i].customValues[j].CustomField.Name == CFMontoFinanciadoName)
                         {
-                            CFMontoFinanciadoName = p.DSI.data[i].customValues[j].CustomField.Name;
-                            CVMontoFinanciadoValue = Convert.ToString(p.DSI.data[i].customValues[j].Value);
+                            CFMontoFinanciadoName = p.DSI[i].customValues[j].CustomField.Name;
+                            CVMontoFinanciadoValue = Convert.ToString(p.DSI[i].customValues[j].Value);
+                        }
+                        #endregion
+
+                        #region CFUbicacion
+                        else if (p.DSI[i].customValues[j].CustomField.Name == CFUbicacionName)
+                        {
+                            CFUbicacionName = p.DSI[i].customValues[j].CustomField.Name;
+                            CVUbicacionValue = FuncUtils.Reemplazar(Convert.ToString(p.DSI[i].customValues[j].Value));
                         }
                         #endregion
 
@@ -233,50 +249,50 @@ namespace DatawareConfig.Servicios
                     #endregion
 
                     #region MarcaModeloYearVersion
-                    if(p.DSI.data[i].brands != null)
+                    if (p.DSI[i].brands != null)
                     {
-                        if (p.DSI.data[i].brands.Count() > 0)
+                        if (p.DSI[i].brands.Count() > 0)
                         {
-                            MarcaId = p.DSI.data[i].brands[0].id;
-                            MarcaNombre = p.DSI.data[i].brands[0].name;
+                            MarcaId = p.DSI[i].brands[0].id;
+                            MarcaNombre = p.DSI[i].brands[0].name;
                         }
                     }
-                    if (p.DSI.data[i].models != null)
+                    if (p.DSI[i].models != null)
                     {
-                        if (p.DSI.data[i].models.Count() > 0)
+                        if (p.DSI[i].models.Count() > 0)
                         {
-                            ModeloId = p.DSI.data[i].models[0].id;
-                            ModeloNombre = p.DSI.data[i].models[0].name;
+                            ModeloId = p.DSI[i].models[0].id;
+                            ModeloNombre = p.DSI[i].models[0].name;
                         }
                     }
-                    if (p.DSI.data[i].years != null)
+                    if (p.DSI[i].years != null)
                     {
-                        if (p.DSI.data[i].years.Count() > 0)
+                        if (p.DSI[i].years.Count() > 0)
                         {
-                            YearId = p.DSI.data[i].years[0].id;
-                            YearNombre = p.DSI.data[i].years[0].name;
+                            YearId = p.DSI[i].years[0].id;
+                            YearNombre = p.DSI[i].years[0].name;
                         }
                     }
-                    if (p.DSI.data[i].trims != null)
+                    if (p.DSI[i].trims != null)
                     {
-                        if (p.DSI.data[i].trims.Count() > 0)
+                        if (p.DSI[i].trims.Count() > 0)
                         {
-                            VersionId = p.DSI.data[i].trims[0].id;
-                            VersionNombre = p.DSI.data[i].trims[0].name;
+                            VersionId = p.DSI[i].trims[0].id;
+                            VersionNombre = p.DSI[i].trims[0].name;
                         }
                     }
                     #endregion
 
                     dt.Rows.Add(
-                        p.DSI.data[i].Id,
-                        p.DSI.data[i].Ref,
-                        p.DSI.data[i].Vin,
-                        p.DSI.data[i].Kms,
-                        p.DSI.data[i].Type,
-                        p.DSI.data[i].ConsignmentFeeType,
-                        p.DSI.data[i].ConsignmentFee,
-                        p.DSI.data[i].BuyPrice,
-                        p.DSI.data[i].BuyDate,
+                        p.DSI[i].Id,
+                        p.DSI[i].Ref,
+                        p.DSI[i].Vin,
+                        p.DSI[i].Kms,
+                        p.DSI[i].Type,
+                        p.DSI[i].ConsignmentFeeType,
+                        p.DSI[i].ConsignmentFee,
+                        p.DSI[i].BuyPrice,
+                        p.DSI[i].BuyDate,
                         MarcaId,
                         MarcaNombre,
                         ModeloId,
@@ -318,9 +334,12 @@ namespace DatawareConfig.Servicios
                         CFMontoFinanciadoId,
                         CFMontoFinanciadoName,
                         CVMontoFinanciadoValue,
-                        p.DSI.data[i].ListPrice,
-                        p.DSI.data[i].Status,
-                        p.DSI.data[i].SellChannel,
+                        CFUbicacionId,
+                        CFUbicacionName,
+                        CVUbicacionValue,
+                        p.DSI[i].ListPrice,
+                        p.DSI[i].Status,
+                        p.DSI[i].SellChannel,
                         2,
                         filaRegistro++,
                         totalRegistros,
@@ -334,7 +353,7 @@ namespace DatawareConfig.Servicios
 
                     var parameters = new
                     {
-                        projects = dt.AsTableValuedParameter("[Sistema].[SyncInventarioIntelimotorCat]")
+                        projects = dt.AsTableValuedParameter("[Sistema].[SyncInventarioIntelimotor]")
                     };
 
                     LogSystem.SyncsDetailInvIntelimotor(p.syncId, p.identifier, "Almacenar informacion en tablas temporales", (filaRegistro - 1).ToString(), "Completado con éxito");

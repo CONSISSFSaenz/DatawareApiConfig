@@ -374,14 +374,16 @@ namespace DatawareConfig.Controllers
         [HttpGet("SyncInvInt")]
         public async Task<IActionResult> SyncInvInt()
         {
-            string UrlIntelimotor = "https://app.intelimotor.com/api/business-units/";
+            //string UrlIntelimotor = "https://app.intelimotor.com/api/business-units/";
+            //$"{UrlIntelimotor}{BusinessUnit}/units?apiKey={ApiKey}&apiSecret={ApiSecret}&pageSize=100"
             //string ApiKey = "a546c5fe24b748374c836b4c016a7c7488e1be09f37695303ea3f80604d7eccf";
             //string ApiSecret = "62585c298dc6504fa86e5a1a89b808bc6360102677adfe594e06c6190af87ac9";
             //string BusinessUnit = "614222e2272bfa0013ac594a";
+            string ApiUrl = await LogSystem.GetKSB("Url");
             string ApiKey = await LogSystem.GetKSB("ApiKey");
             string ApiSecret = await LogSystem.GetKSB("ApiSecret");
             string BusinessUnit = await LogSystem.GetKSB("Business");
-
+            string UrlIntelimotor = $"{ApiUrl}inventory-units?apiKey={ApiKey}&apiSecret={ApiSecret}&getAll=true";
             string procUpd = "";
             string validarProc = await LogSystem.ValidarProcesoActivo("CheckInvInt",0);
             if(validarProc == "ExisteUnProcesoActivo")
@@ -399,8 +401,11 @@ namespace DatawareConfig.Controllers
                     LogSystem.SyncsInvIntelimotor(syncId, identifier, "Manual", userid); //Log Proceso Manual
                     LogSystem.SyncsDetailInvIntelimotor(syncId, identifier, "Descarga datos Intelimotor", "0", "-");
 
+                    //var (resultSI, _httpResponseMessageEntSI) =
+                    //await HttpClientUtility.GetAsync<DataSyncIntDTOModel>(UrlIntelimotor, null);
+
                     var (resultSI, _httpResponseMessageEntSI) =
-                    await HttpClientUtility.GetAsync<DataSyncIntDTOModel>($"{UrlIntelimotor}{BusinessUnit}/units?apiKey={ApiKey}&apiSecret={ApiSecret}&pageSize=100", null);
+                    await HttpClientUtility.GetAsync<List<DataSyncIntModel>>(UrlIntelimotor, null);
 
                     string resultadoApi;
                     if(_httpResponseMessageEntSI.StatusCode == HttpStatusCode.OK)
@@ -424,7 +429,7 @@ namespace DatawareConfig.Controllers
                         resultadoApi = _httpResponseMessageEntSI.StatusCode.ToString();
                         SendMailHelper.ErrorSyncInventarioIntelimotor(resultadoApi);
                     }
-                    LogSystem.SyncsDetailInvIntelimotor(syncId, identifier, "Termina descarga datos Intelimotor", resultSI.data.Count().ToString(), resultadoApi);
+                    LogSystem.SyncsDetailInvIntelimotor(syncId, identifier, "Termina descarga datos Intelimotor", resultSI.Count().ToString(), resultadoApi);
 
                     ParametrosSyncIntDTOModel prams = new ParametrosSyncIntDTOModel
                     {
@@ -456,12 +461,22 @@ namespace DatawareConfig.Controllers
                         LogsDataware.OKActualizar,
                         "SyncIntelimotor Inventario",
                         "La sincronización se realizó con éxito");
-                        procUpd = await LogSystem.ValidarProcesoActivo("UpdInvInt", 0);
+                        
                         int total = await SendMailHelper.AltaInventarioIntelimotor(identifier);
                         int totalErrores = await SendMailHelper.AltaInventarioIntelimotorErrores(identifier);
-                        return new OkObjectResult(ResponseHelper.Response(200, resultSI.data.Count(), Messages.SuccessMsg));
+                        int totalCreados = await ApiHelper.CrearFolderSyncInventario(identifier);
+                        procUpd = await LogSystem.ValidarProcesoActivo("UpdInvInt", 0);
+                        object dataobj = new
+                        {
+                            totalRegistros = resultSI.Count(),
+                            totalAlta = total,
+                            totalConErrores = totalErrores,
+                            totalFolderCreados = totalCreados,
+                            statusProceso = procUpd
+                        };
+                        return new OkObjectResult(ResponseHelper.Response(200, dataobj, Messages.SuccessMsg));
                     }
-
+                    
                 }
                 catch (Exception ex)
                 {
@@ -476,6 +491,51 @@ namespace DatawareConfig.Controllers
                     throw ex;
                 }
             }
+        }
+
+        [HttpGet("EliminarIntelimotorIds")]
+        public async Task<IActionResult> EliminarIntelimotorIds()
+        {
+            string ApiUrl = await LogSystem.GetKSB("Url");
+            string ApiKey = await LogSystem.GetKSB("ApiKey");
+            string ApiSecret = await LogSystem.GetKSB("ApiSecret");
+            //string BusinessUnit = await LogSystem.GetKSB("Business");
+            string _userId = "9c0a37f3-937e-429a-ae5a-df72885002c0";
+
+            try
+            {
+                string resultado = "";
+                long logInterfazId = 0;
+                var(respuesta,ids) = await EliminarRegistros.DelIntelimotorIds(ApiUrl, ApiKey, ApiSecret, _userId);
+                if (respuesta == 0)
+                {
+                    if(ids != "")
+                    {
+                        resultado = "Error al eliminar registro(s) de intelimotor";
+                        logInterfazId = await LogsDataware.LogInterfaz(LogsDataware.Intelimotor, LogsDataware.ERROREliminar, "Proceso automático", resultado);
+                        LogsDataware.LogInterfazDetalle(logInterfazId, resultado, "Eliminar intelimotor", "IntelimotorId: " + ids);
+                    }
+                    
+                }
+                else
+                {
+                    resultado = "Registro(s) eliminado(s) de intelimotor correctamente";
+                    logInterfazId = await LogsDataware.LogInterfaz(LogsDataware.Intelimotor, LogsDataware.OKEliminar, "Proceso automático", resultado);
+                    LogsDataware.LogInterfazDetalle(logInterfazId, resultado, "Eliminar intelimotor", "IntelimotorId: " + ids);
+                }
+
+                return new OkObjectResult(ResponseHelper.Response(200, respuesta, resultado));
+
+            }
+            catch (Exception ex)
+            {
+                LogsDataware.LogSistema(LogsDataware.Intelimotor, LogsDataware.ERROREliminar, "Proceso automático", ex.Message);
+                return new ObjectResult(ResponseHelper.Response(403, null, "Error al procesar registros")) { StatusCode = 403 };
+                throw ex;
+
+            }
+
+            
         }
 
     }

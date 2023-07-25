@@ -82,7 +82,7 @@ namespace DatawareConfig.Helpers
         #region SyncInvIntelimotor
         public static async void SyncsInvIntelimotor(object syncId, long identifier, string tipoSync, string usuarioAlta)
         {
-            string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
+            string cnxStr = LogsDataware.CnxStrDb();
             //Environment.GetEnvironmentVariable("sqldb_connection");
             try
             {
@@ -111,7 +111,7 @@ namespace DatawareConfig.Helpers
 
         public static void SyncsDetailInvIntelimotor(object syncId, long identifier, string accion, string valor, string resultado)
         {
-            string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
+            string cnxStr = LogsDataware.CnxStrDb();
             try
             {
                 using (SqlConnection cnx = new SqlConnection(cnxStr))
@@ -140,7 +140,7 @@ namespace DatawareConfig.Helpers
 
         public static async Task<string> GetKSB(string KeySecret)
         {
-            string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
+            string cnxStr = LogsDataware.CnxStrDb();
 
             string ksb = "";
             using (SqlConnection cnx = new SqlConnection(cnxStr))

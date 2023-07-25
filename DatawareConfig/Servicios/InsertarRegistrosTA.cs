@@ -15,7 +15,7 @@ namespace DatawareConfig.Servicios
         {
             try
             {
-                string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=900000";
+                string cnxStr = LogsDataware.CnxStrDb();
                 //Environment.GetEnvironmentVariable("sqldb_connection");
                 int resultados;
                 int totalRegistros = p.TipoAdDto.data.Count - 1;

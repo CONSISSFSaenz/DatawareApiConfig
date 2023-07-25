@@ -58,6 +58,63 @@ namespace DatawareConfig.Helpers
             }
         }
 
+        /*public static async void CrearFolderSyncInventario(long identifier)
+        {
+            string cnxStr = LogsDataware.CnxStrDb();
+            string FechaHora = TimeZoneInfo.ConvertTime(DateTime.Now, TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time (Mexico)")).ToString("yyyy-MM-dd HH:mm:ss");
+            var filasTablaHtml = "";
+            //string FechaAdquisicion = "";
+            using (SqlConnection cnx = new SqlConnection(cnxStr))
+            {
+                if (cnx.State == ConnectionState.Closed)
+                    await cnx.OpenAsync();
+                var sql = "SELECT * FROM Sistema.VWVehiculosPrealtaInventarioIntelimotorCrearFolder WHERE Identifier=" + identifier;
+                var rows = await cnx.QueryAsync<SyncInventarioVehiculosCrearFolder>(sql);
+                var total = rows.Count();
+                if(total > 0)
+                {
+                    foreach (var row in rows)
+                    {
+                        var Vin = row.Vin;
+                        var GId = row.GeneralId;
+                        await ApiHelper.UpdFolderDatadocs(Vin, GId);
+                    }
+                }
+                
+                await cnx.CloseAsync();
+
+            }
+        }*/
+
+        /*public static async Task<int> CrearFolderSyncInventario(long identifier)
+        {
+            string cnxStr = LogsDataware.CnxStrDb();
+            using (SqlConnection cnx = new SqlConnection(cnxStr))
+            {
+                if (cnx.State == ConnectionState.Closed)
+                    await cnx.OpenAsync();
+                var sql = "SELECT * FROM Sistema.VWVehiculosPrealtaInventarioIntelimotorCrearFolder WHERE Identifier=" + identifier;
+                var rows = await cnx.QueryAsync<SyncInventarioVehiculosCrearFolder>(sql);
+                var total = rows.Count();
+                if (total > 0)
+                {
+                    foreach (var row in rows)
+                    {
+                        var Vin = row.Vin;
+                        var GId = row.GeneralId;
+                        await ApiHelper.UpdFolderDatadocs(Vin, GId);
+                    }
+                }
+                else
+                {
+                    total = 0;
+                }
+
+                await cnx.CloseAsync();
+                return total;
+            }
+        }*/
+
         public static async Task<int> AltaInventarioIntelimotorErrores(long identifier)
         {
             string cnxStr = LogsDataware.CnxStrDb();

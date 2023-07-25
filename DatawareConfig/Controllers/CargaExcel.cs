@@ -25,8 +25,8 @@ namespace DatawareConfig.Controllers
         [HttpPost("cargaExcelTest")]
         public async Task<IActionResult> Upload(IFormFile file)
         {
-            string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
-            
+            string cnxStr = LogsDataware.CnxStrDb();
+
             var stream = file.OpenReadStream();
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             int resultInsert = 0;
@@ -140,7 +140,7 @@ namespace DatawareConfig.Controllers
         [HttpPost("cargaExcel")]
         public async Task<IActionResult> UploadSepomex(IFormFile file)
         {
-            string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
+            string cnxStr = LogsDataware.CnxStrDb();
 
             var stream = file.OpenReadStream();
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
