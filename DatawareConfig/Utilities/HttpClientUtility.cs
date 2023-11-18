@@ -55,6 +55,50 @@ namespace Consiss.ConfigDataWare.CrossCutting.Utilities
             }
         }
 
+        public static async Task<(T, HttpResponseMessage)> PostAsyncAcendes<T>(string url, object data, string? token = null) where T : class, new()
+        {
+            try
+            {
+                var retryPolity = GetRetryPolity();
+                return await retryPolity.ExecuteAsync(async () =>
+                {
+                    HttpClient client = new HttpClient();
+                    client.Timeout = TimeSpan.FromMinutes(30);
+                    //if (!string.IsNullOrEmpty(token))
+                    //    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                    string content = JsonConvert.SerializeObject(data);
+                    var buffer = Encoding.UTF8.GetBytes(content);
+                    var byteContent = new ByteArrayContent(buffer);
+                    byteContent.Headers.Add("X-Openerp-Session-Id", token);
+                    byteContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                    var response = await client.PostAsync(url, byteContent).ConfigureAwait(false);
+                    string result = await response.Content.ReadAsStringAsync();
+                    switch (response.StatusCode)
+                    {
+                        case HttpStatusCode.OK:
+                            return (JsonConvert.DeserializeObject<T>(result), response);
+                        case HttpStatusCode.BadRequest:
+                            return (JsonConvert.DeserializeObject<T>(result), response);
+                        default:
+                            return (new T(), response);
+                    }
+                });
+            }
+            catch (WebException ex)
+            {
+                if (ex.Response != null)
+                    //ErrorLogHelper.AddExcFileTxt(ex, url + " -> POST - " + $"response :{new StreamReader(ex.Response.GetResponseStream()).ReadToEnd()}");
+                    throw new Exception($"response :{new StreamReader(ex.Response.GetResponseStream()).ReadToEnd()}", ex);
+                throw ex;
+            }
+            catch (Exception ex)
+            {
+                //ErrorLogHelper.AddExcFileTxt(ex, url + " -> POST");
+                //if (ex.InnerException != null) ErrorLogHelper.AddExcFileTxt(ex.InnerException, url + " -> POST");
+                throw ex;
+            }
+        }
+
         public static async Task<(T, HttpResponseMessage)> PutAsync<T>(string url, object data, string token = null) where T : class, new()
         {
             try

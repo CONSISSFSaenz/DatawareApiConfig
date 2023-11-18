@@ -286,5 +286,51 @@ namespace DatawareConfig.Helpers
             smtp.Send(email);
             smtp.Disconnect(true);
         }
+
+        public static async void CorreoGenerico(string asunto, string mensaje)
+        {
+            string cnxStr = LogsDataware.CnxStrDb();
+            NotificacionModel obj = new NotificacionModel();
+            using (SqlConnection cnx = new SqlConnection(cnxStr))
+            {
+                await cnx.OpenAsync();
+                using (SqlCommand cmd = new SqlCommand("Notificaciones.SP_GetAll_TipoCorreos", cnx))
+                {
+                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@Accion", System.Data.SqlDbType.NVarChar).Value = "TipoCorreosById";
+                    cmd.Parameters.Add("@TablaId", System.Data.SqlDbType.BigInt).Value = 9;
+                    var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        if (reader.HasRows)
+                        {
+                            obj = new NotificacionModel
+                            {
+                                TipoCorreo = reader.GetString(0),
+                                Correos = reader.GetString(1),
+                                Prioridad = reader.GetString(2),
+                                Contenido = reader.GetString(3),
+                                Status = reader.GetBoolean(4)
+                            };
+
+                            if (obj.Status == true)
+                            {
+                                var toEmails = obj.Correos.Split(',');
+                                foreach (var toEmail in toEmails)
+                                {
+                                    var containerTipoCorreo = obj.Contenido.Replace("{ContainerTipoCorreo}", asunto);
+                                    var containerDescripcion = containerTipoCorreo.Replace("{ContainerDescripcion}", mensaje);
+                                    Enviar(asunto, toEmail, obj.Prioridad, containerDescripcion);
+                                }
+
+                            }
+                        }
+
+                    }
+
+                }
+                await cnx.CloseAsync();
+            }
+        }
     }
 }

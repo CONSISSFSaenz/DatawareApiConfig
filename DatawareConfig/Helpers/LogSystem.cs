@@ -14,8 +14,9 @@ namespace DatawareConfig.Helpers
         #region InventarioAutosCatalogos
         public static async void SyncsCatIntelimotor(object syncId, long identifier, string tipoSync, string usuarioAlta)
         {
-            string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
+            //string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
             //Environment.GetEnvironmentVariable("sqldb_connection");
+            string cnxStr = LogsDataware.CnxStrDb();
 
             using (SqlConnection cnx = new SqlConnection(cnxStr))
             {
@@ -37,7 +38,8 @@ namespace DatawareConfig.Helpers
 
         public static void SyncsDetailCatIntelimotor(object syncId, long identifier, string accion, string valor, string resultado)
         {
-            string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
+            //string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
+            string cnxStr = LogsDataware.CnxStrDb();
 
             using (SqlConnection cnx = new SqlConnection(cnxStr))
             {
@@ -60,7 +62,8 @@ namespace DatawareConfig.Helpers
 
         public static async Task<string> ValidarProcesoActivo(string accion, int valor)
         {
-            string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
+            //string cnxStr = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=12000";
+            string cnxStr = LogsDataware.CnxStrDb();
 
             var result = "";
             using (SqlConnection cnx = new SqlConnection(cnxStr))

@@ -9,10 +9,38 @@ namespace DatawareConfig.Helpers
 {
     public static class ApiHelper
     {
-        public const string urlLoginDatadocs = "http://68.178.207.49:8099/api/usuario/login";
-        public const string urlCreateFolderDatadocs = "http://68.178.207.49:8099/api/Fichero/Create";
-        public const string urlSubirDocumentoDatadocs = "http://68.178.207.49:8099/api/Documento";
-        public const string urlScopes = "http://68.178.207.49:8099/api/Documento/scopes";
+        public const string urlSubirDocumentoDatadocs = "Documento";
+        public const string urlLoginDatadocs = "usuario/login";
+        public const string urlCreateFolderDatadocs = "Fichero/Create";
+        public const string urlScopes = "Documento/scopes";
+
+        public async static Task<string> GetUrlDataDocs()
+        {
+            string cnxStr = LogsDataware.CnxStrDb();
+
+            string? dts = "";
+            using (SqlConnection cnx = new SqlConnection(cnxStr))
+            {
+                await cnx.OpenAsync();
+                using (SqlCommand cmd = new SqlCommand("Sistema.SP_ApiDataDocs", cnx))
+                {
+                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@Accion", System.Data.SqlDbType.NVarChar).Value = "Url";
+                    dts = Convert.ToString(await cmd.ExecuteScalarAsync());
+
+                }
+                await cnx.CloseAsync();
+            }
+            if (dts == null)
+            {
+                return "NODATA";
+            }
+            else
+            {
+                return dts;
+            }
+        }
+
         public static async Task<string> GetDtsDatadocs(string tipoAccion, string? valor = null)
         {
             string cnxStr = LogsDataware.CnxStrDb();
@@ -66,8 +94,9 @@ namespace DatawareConfig.Helpers
                 };
                 try
                 {
+                    var urlDD = await GetUrlDataDocs();
                     var (result, _httpResponseMessage) =
-                    await HttpClientUtility.PostAsync<respDatadocsModel>(urlLoginDatadocs, usrpass, null);
+                    await HttpClientUtility.PostAsync<respDatadocsModel>(urlDD + urlLoginDatadocs, usrpass, null);
                     if (_httpResponseMessage.StatusCode == HttpStatusCode.OK)
                     {
                         dts = await GetDtsDatadocs("UpdToken", result.token);
@@ -101,6 +130,7 @@ namespace DatawareConfig.Helpers
         public async static Task<string> UsarTokenDatadocs()
         {
             string token = "";
+            var urlDD = await GetUrlDataDocs();
             try
             {
 
@@ -108,7 +138,7 @@ namespace DatawareConfig.Helpers
                 var split = dts.Split('|');
                 token = split[2];
                 var (result, _httpResponseMessage) =
-                await HttpClientUtility.PostAsync<respDatadocsModel>(urlScopes, null, token);
+                await HttpClientUtility.PostAsync<respDatadocsModel>(urlDD + urlScopes, null, token);
                 if (_httpResponseMessage.StatusCode == HttpStatusCode.OK)
                 {
                     return token;
@@ -156,8 +186,9 @@ namespace DatawareConfig.Helpers
                 };
                 try
                 {
+                    var urlDD = await GetUrlDataDocs();
                     var (result, _httpResponseMessage) =
-                    await HttpClientUtility.PostAsyncString<object>(urlCreateFolderDatadocs, paramDatadocs, token);
+                    await HttpClientUtility.PostAsyncString<object>(urlDD + urlCreateFolderDatadocs, paramDatadocs, token);
                     //await HttpClientUtility.PostAsyncString<object>("http://68.178.207.49:8099/api/usuario/lo", paramDatadocs, token);
                     if (_httpResponseMessage.StatusCode == HttpStatusCode.OK)
                     {
@@ -221,9 +252,11 @@ namespace DatawareConfig.Helpers
                         {
                             resultUpdFolder = "Error al guardar folder";
                         }
-                        return resultUpdFolder;
+                        
                     }
                     await cnx.CloseAsync();
+
+                    return resultUpdFolder;
                 }
 
             }
