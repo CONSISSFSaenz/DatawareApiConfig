@@ -1,5 +1,6 @@
 ﻿using Consiss.ConfigDataWare.CrossCutting.Utilities;
 using Microsoft.Data.SqlClient;
+using Newtonsoft.Json;
 
 namespace DatawareConfig.Helpers
 {
@@ -143,9 +144,113 @@ namespace DatawareConfig.Helpers
         public const string urlGestoria = "interfaces/procesos/gestoria";
         public const string urlCancelacionGestoria = "interfaces/procesos/cancelaciongestoria";
         public const string urlEntrega = "interfaces/procesos/entrega";
+        public const string urlExpediente = "interfaces/documentos/expediente";
+        public const string urlLiberaVehiculo = "interfaces/autos/liberavehiculo";
+        public const string urlCancelacionContrato = "interfaces/procesos/cancelacioncontrato";
+        public const string urlRenovacionSeguro = "interfaces/procesos/renovacionseguro";
         #endregion
 
-        #region Entidades
+        #region PARAMETROS_EndPoint_CAMBIOESTATUS 
+        public async static Task<(string, string)> CambioEstatusByEndPoint(string endpoint)
+        {
+            string cnxStr = LogsDataware.CnxStrDb();
+
+            string? ID = "";
+            string? MOTIVO = "";
+            using (SqlConnection cnx = new SqlConnection(cnxStr))
+            {
+                await cnx.OpenAsync();
+                using (SqlCommand cmd = new SqlCommand("Sistema.SP_Get_Acendes_CAMBIOESTATUS", cnx))
+                {
+                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@Accion", System.Data.SqlDbType.NVarChar).Value = "EP";
+                    cmd.Parameters.Add("@EndPoint", System.Data.SqlDbType.NVarChar).Value = endpoint.ToUpper();
+                    var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        if (reader.HasRows)
+                        {
+                            ID = reader.GetString(0);
+                            MOTIVO = reader.GetString(1);
+                        }
+                    }
+
+                }
+                await cnx.CloseAsync();
+            }
+            if (!string.IsNullOrEmpty(ID))
+            {
+                return (ID, MOTIVO);
+            }
+            else
+            {
+                return ("ERROR ID", "ESTATUS NO ENCONTRADO");
+            }
+        }
+        public static (string, string) CambioEstatusByEndPointOBSOLETO(string endpoint)
+        {
+            string ID = "";
+            string MOTIVO = "";
+            switch (endpoint)
+            {
+                case "LiberarPrueba":
+                    ID = "estatus_04a_validacion";
+                    MOTIVO = "Cita sin concretar";
+                    break;
+                case "SepararVehiculo":
+                    ID = "estatus_06b_separado_vehiculo";
+                    MOTIVO = "06b Separado de Vehículo";
+                    break;
+                case "SeguroAutorizado":
+                    ID = "status_06c_seguro_autorizado";
+                    MOTIVO = "6c Seguro autorizado";
+                    break;
+                case "LiberaEnganche":
+                    ID = "estatus_04a_validacion";
+                    MOTIVO = "4a Validación";
+                    break;
+                case "CancelacionGestoria":
+                    ID = "estatus_04a_validacion";
+                    MOTIVO = "4a Validación";
+                    break;
+                case "Gestoria":
+                    ID = "status_13a_agendar_entrega";
+                    MOTIVO = "3a Agendar Entrega";
+                    break;
+                case "Entrega":
+                    ID = "estatus_14a_expediente";
+                    MOTIVO = "4a Expediente";
+                    break;
+                case "LiberaVehiculo":
+                    ID = "estatus_04a_validacion";
+                    MOTIVO = "6c Seguro autorizado";
+                    break;
+                case "CancelacionContrato":
+                    ID = "estatus_04a_validacion";
+                    MOTIVO = "4a Validación";
+                    break;
+                case "CancelacionContratoJOB":
+                    ID = "estatus_06b_separado_vehiculo";
+                    MOTIVO = "98a Cancelado por tiempo";
+                    break;
+                case "Expendiente":
+                    ID = "status_99_autorizado";
+                    MOTIVO = "Autorizado";
+                    break;
+                case "CotizacionFinal":
+                    ID = "estatus_07a_cotizacion_final";
+                    MOTIVO = "07a Cotización Final";
+                    break;
+                default:
+                    ID = "";
+                    MOTIVO = "";
+                    break;
+            }
+            return (ID, MOTIVO);
+        }
+        #endregion
+
+        #region EntidadesOriginacion
         public class ReqMantenerPrueba
         {
             public string? sol_id { get; set; }
@@ -443,39 +548,177 @@ namespace DatawareConfig.Helpers
             public RespEntrega result { get; set; }
         }
 
+        public class ReqExpediente
+        {
+            public string? sol_id { get; set; }
+            public string? contrato { get; set; }
+            public string? vin { get; set; }
+            public bool? endosado { get; set; }
+            public bool? facturado { get; set; }
+            public string? a_nombre_de { get; set; }
+            public string? tipo_expediente { get; set; }
+        }
+        public class RespExpediente
+        {
+            public string? sol_id { get; set; }
+            public string? contrato { get; set; }
+            public string? vin { get; set; }
+            public bool? endosado { get; set; }
+            public bool? facturado { get; set; }
+            public string? a_nombre_de { get; set; }
+            public string? tipo_expediente { get; set; }
+            public string? status { get; set; }
+            public string? message { get; set; }
+        }
+        public class ResultExpediente
+        {
+            public RespExpediente result { get; set; }
+        }
+
+        public class ReqLiberaVehiculo
+        {
+            public string? sol_id { get; set; }
+            public string? vin { get; set; }
+            public string? id_datamovil { get; set; }
+            public string? status_datamovil { get; set; }
+        }
+        public class RespLiberaVehiculo
+        {
+            public string? sol_id { get; set; }
+            public string? vin { get; set; }
+            public string? id_datamovil { get; set; }
+            public string? status_datamovil { get; set; }
+            public string? separado_vehiculo { get; set; }
+            public string? status { get; set; }
+            public string? message { get; set; }
+        }
+        public class ResultLiberaVehiculo
+        {
+            public RespLiberaVehiculo result { get; set; }
+        }
+
+        public class ReqCancelacionContrato
+        {
+            public string? sol_id { get; set; }
+            public string? contrato { get; set; }
+            public string? vin { get; set; }
+            public int? id_datamovil { get; set; }
+            public string? status_datamovil { get; set; }
+            public bool? activo { get; set; }
+            public string? motivo_cancelacion { get; set; }
+            public string? desc_cancelacion { get; set; }
+        }
+        public class RespCancelacionContrato
+        {
+            public string? sol_id { get; set; }
+            public string? contrato { get; set; }
+            public string? vin { get; set; }
+            public int? id_datamovil { get; set; }
+            public string? status_datamovil { get; set; }
+            public bool? activo { get; set; }
+            public string? motivo_cancelacion { get; set; }
+            public string? desc_cancelacion { get; set; }
+            public string? status { get; set; }
+            public string? message { get; set; }
+        }
+        public class ResultCancelacionContrato
+        {
+            public RespCancelacionContrato result { get; set; }
+        }
+
+        public class ReqRenovacionSeguro
+        {
+            public string? sol_id { get; set; }
+            public string? contrato { get; set; }
+            public string? vin { get; set; }
+            public string? seguro { get; set; }
+            public string? aseguradora { get; set; }
+            public string? poliza { get; set; }
+            public string? fecha_ini_seguro { get; set; }
+            public string? fecha_fin_seguro { get; set; }
+            public string? dias_vencidos_seguro { get; set; }
+            public string? tel_aseguradora { get; set; }
+            public bool? seguro_autorizado { get; set; }
+            public string? status_seguro { get; set; }
+            public decimal? costo { get; set; }
+            public string? uso_unidad { get; set; }
+            public string? agente_seguro { get; set; }
+            public string? fecha_compromiso { get; set; }
+        }
+        public class RespRenovacionSeguro
+        {
+            public string? sol_id { get; set; }
+            public string? contrato { get; set; }
+            public string? vin { get; set; }
+            public string? seguro { get; set; }
+            public string? aseguradora { get; set; }
+            public string? poliza { get; set; }
+            public string? fecha_ini_seguro { get; set; }
+            public string? fecha_fin_seguro { get; set; }
+            public string? dias_vencidos_seguro { get; set; }
+            public string? tel_aseguradora { get; set; }
+            public bool? seguro_autorizado { get; set; }
+            public string? status_seguro { get; set; }
+            public decimal? costo { get; set; }
+            public string? uso_unidad { get; set; }
+            public string? agente_seguro { get; set; }
+            public string? fecha_compromiso { get; set; }
+            public string? status { get; set; }
+            public string? message { get; set; }
+        }
+        public class ResultRenovacionSeguro
+        {
+            public RespRenovacionSeguro result { get; set; }
+        }
         #endregion
 
-        #region EndPoints
+        #region EndPointsOriginacion
         public async static Task<(string, string)> MantenerPrueba(string solId, string motivoMantener, string descMantener, string Vin, string fechaApartado, string idDatamovil, string statusDatamovil)
         {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "MANTENERDRIVETEST");
             var (token, url) = await UsarTokenAcendes();
             ReqMantenerPrueba request = new ReqMantenerPrueba();
+            request = new ReqMantenerPrueba
+            {
+                sol_id = solId,
+                motivo_mantener = motivoMantener,
+                desc_mantener = descMantener,
+                vin = Vin,
+                fecha_apartado = fechaApartado,
+                id_datamovil = idDatamovil,
+                status_datamovil = statusDatamovil,
+            };
+            var jsonreq = JsonConvert.SerializeObject(request);
             try
             {
-                request = new ReqMantenerPrueba
-                {
-                    sol_id = solId,
-                    motivo_mantener = motivoMantener,
-                    desc_mantener = descMantener,
-                    vin = Vin,
-                    fecha_apartado = fechaApartado,
-                    id_datamovil = idDatamovil,
-                    status_datamovil = statusDatamovil,
-                };
                 var (resultPost, _httpResponse) =
                     await HttpClientUtility.PostAsyncAcendes<ResultMantenerPrueba>(url + urlMantenerDriveTest, request, token);
                 if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
                 {
-                    return (resultPost.result.status, resultPost.result.message);
+                    if (resultPost.result != null)
+                    {
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "MANTENERDRIVETEST", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return (resultPost.result.status, resultPost.result.message);
+                    }
+                    else
+                    {
+
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "MANTENERDRIVETEST", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
+                        return ("proceso_correcto", "El proceso falló al retornar respuesta");
+                    }
+
                     //return ("proceso_correcto", "OK");
                 }
                 else
                 {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "MANTENERDRIVETEST", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
                     return ("Error", "El proceso falló al notificar a Acendes");
                 }
             }
             catch (Exception ex)
             {
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "MANTENERDRIVETEST", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
                 return ("Error", ex.Message);
                 throw ex;
             }
@@ -483,29 +726,51 @@ namespace DatawareConfig.Helpers
         }
         public async static Task<(string, string)> CargaDocumento(string nombreDoc, string tipoArchivo, string Vin, string solId, string tipoDoc, string documento)
         {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "UPLOADDOCUMENT");
             var (token, url) = await UsarTokenAcendes();
             ReqCargarDocumento request = new ReqCargarDocumento();
+            request = new ReqCargarDocumento
+            {
+                name = nombreDoc,
+                type = tipoArchivo,
+                vin = Vin,
+                sol_id = solId,
+                tipo_docto = tipoDoc,
+                documento = documento
+            };
+            object requestSinDoc = new
+            {
+                name = nombreDoc,
+                type = tipoArchivo,
+                vin = Vin,
+                sol_id = solId,
+                tipo_docto = tipoDoc,
+                documento = "No puede mostrar el código completo: " + documento.Substring(0, 30)
+            };
+            var jsonreq = JsonConvert.SerializeObject(requestSinDoc);
             try
             {
-                request = new ReqCargarDocumento
-                {
-                    name = nombreDoc,
-                    type = tipoArchivo,
-                    vin = Vin,
-                    sol_id = solId,
-                    tipo_docto = tipoDoc,
-                    documento = documento
-                };
-
                 var (resultPost, _httpResponse) =
                 await HttpClientUtility.PostAsyncAcendes<ResultCargaDocumento>(url + urlUploadDocument, request, token);
                 if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
                 {
-                    return (resultPost.result.status, resultPost.result.message);
+                    if (resultPost.result != null)
+                    {
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "UPLOADDOCUMENT", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return (resultPost.result.status, resultPost.result.message);
+                    }
+                    else
+                    {
+
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "UPLOADDOCUMENT", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
+                        return ("proceso_correcto", "El proceso falló al retornar respuesta");
+                    }
                     //return ("ok", "OK");
                 }
                 else
                 {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "UPLOADDOCUMENT", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
                     return ("Error", "Error al cargar documento en Acendes");
                 }
 
@@ -513,6 +778,7 @@ namespace DatawareConfig.Helpers
             }
             catch (Exception ex)
             {
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "UPLOADDOCUMENT", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
                 return ("Error", ex.Message);
                 throw ex;
             }
@@ -520,28 +786,32 @@ namespace DatawareConfig.Helpers
         }
         public async static Task<(string, string)> LiberarPrueba(string solId, string Vin, string idDatamovil, string statusDatamovil)
         {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "DELETEDRIVETEST");
             var (token, url) = await UsarTokenAcendes();
             ReqLiberarPrueba request = new ReqLiberarPrueba();
+            request = new ReqLiberarPrueba
+            {
+                sol_id = solId,
+                vin = Vin,
+                id_datamovil = idDatamovil,
+                status_datamovil = statusDatamovil
+            };
+            var jsonreq = JsonConvert.SerializeObject(request);
             try
             {
-                request = new ReqLiberarPrueba
-                {
-                    sol_id = solId,
-                    vin = Vin,
-                    id_datamovil = idDatamovil,
-                    status_datamovil = statusDatamovil
-                };
-
                 var (resultPost, _httpResponse) =
                 await HttpClientUtility.PostAsyncAcendes<ResultLiberarPrueba>(url + urlDeleteDriveTest, request, token);
                 if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
                 {
                     if (resultPost.result.status == null)
                     {
-                        return ("Error", "Error al procesar información en Acendes");
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "DELETEDRIVETEST", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return ("proceso_correcto", "Error al procesar resultado de Acendes");
                     }
                     else
                     {
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "DELETEDRIVETEST", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
                         return (resultPost.result.status, resultPost.result.message);
                         //return ("proceso_correcto", "OK");
                     }
@@ -549,11 +819,13 @@ namespace DatawareConfig.Helpers
                 }
                 else
                 {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "DELETEDRIVETEST", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
                     return ("Error", "El proceso falló al notificar a Acendes");
                 }
             }
             catch (Exception ex)
             {
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "DELETEDRIVETEST", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
                 return ("Error", ex.Message);
                 throw ex;
             }
@@ -561,6 +833,7 @@ namespace DatawareConfig.Helpers
         }
         public async static Task<(string, string)> SepararVehiculo(string solId, string Vin, string idDatamovil, string statusDatamovil, string usoUnidad)
         {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "SEPVEH");
             var (token, url) = await UsarTokenAcendes();
             ReqSepararVehiculo request = new ReqSepararVehiculo();
             request = new ReqSepararVehiculo
@@ -571,129 +844,476 @@ namespace DatawareConfig.Helpers
                 status_datamovil = statusDatamovil,
                 uso_unidad = usoUnidad
             };
-            var (resultPost, _httpResponse) =
+            var jsonreq = JsonConvert.SerializeObject(request);
+            try
+            {
+                var (resultPost, _httpResponse) =
                 await HttpClientUtility.PostAsyncAcendes<ResultSepararVehiculo>(url + urlSepVeh, request, token);
-            if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
-            {
-                return (resultPost.result.status, resultPost.result.message);
-                //return ("proceso_correcto", "OK");
+                if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    if (resultPost.result != null)
+                    {
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "SEPVEH", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return (resultPost.result.status, resultPost.result.message);
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "SEPVEH", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
+                        return ("proceso_correcto", "El proceso falló al retornar respuesta");
+                    }
+
+                    //return ("proceso_correcto", "OK");
+                }
+                else
+                {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "SEPVEH", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
+                    return ("Error", "El proceso falló al notificar a Acendes");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                return ("Error", "El proceso falló al notificar a Acendes");
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "SEPVEH", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
+                return ("Error", ex.Message);
+                throw ex;
             }
+
         }
         public async static Task<(string, string)> SeguroAutorizado(ReqSeguroAutorizado request)
         {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "SEGAUTO");
             var (token, url) = await UsarTokenAcendes();
-
-            var (resultPost, _httpResponse) =
+            var jsonreq = JsonConvert.SerializeObject(request);
+            try
+            {
+                var (resultPost, _httpResponse) =
                 await HttpClientUtility.PostAsyncAcendes<ResultSeguroAutorizado>(url + urlSegAuto, request, token);
-            if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
-            {
-                return (resultPost.result.status, resultPost.result.message);
-                //return ("proceso_correcto", "OK");
+                if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    if (resultPost.result != null)
+                    {
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "SEGAUTO", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return (resultPost.result.status, resultPost.result.message);
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "SEGAUTO", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
+                        return ("proceso_correcto", "El proceso falló al retornar respuesta");
+                    }
+                    //return ("proceso_correcto", "OK");
+                }
+                else
+                {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "SEGAUTO", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
+                    return ("Error", "El proceso falló al notificar a Acendes");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                return ("Error", "El proceso falló al notificar a Acendes");
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "SEGAUTO", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
+                return ("Error", ex.Message);
+                throw ex;
             }
+
         }
         public async static Task<(string, string)> LiberaEnganche(ReqLiberaEnganche request)
         {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "LIBERAENGANCHE");
             var (token, url) = await UsarTokenAcendes();
-
-            var (resultPost, _httpResponse) =
+            var jsonreq = JsonConvert.SerializeObject(request);
+            try
+            {
+                var (resultPost, _httpResponse) =
                 await HttpClientUtility.PostAsyncAcendes<ResultLiberaEnganche>(url + urlLiberaEnganche, request, token);
-            if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
-            {
-                return (resultPost.result.status, resultPost.result.message);
-                //return ("proceso_correcto", "OK");
+                if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    if (resultPost.result != null)
+                    {
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "LIBERAENGANCHE", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return (resultPost.result.status, resultPost.result.message);
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "LIBERAENGANCHE", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
+                        return ("proceso_correcto", "El proceso falló al retornar respuesta");
+                    }
+
+                    //return ("proceso_correcto", "OK");
+                }
+                else
+                {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "LIBERAENGANCHE", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
+                    return ("Error", "El proceso falló al notificar a Acendes");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                return ("Error", "El proceso falló al notificar a Acendes");
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "LIBERAENGANCHE", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
+                return ("Error", ex.Message);
+                throw ex;
             }
+
         }
         public async static Task<(string, string)> SerDMS(ReqSerDMS request)
         {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "SERDMS");
             var (token, url) = await UsarTokenAcendes();
-
-            var (resultPost, _httpResponse) =
+            var jsonreq = JsonConvert.SerializeObject(request);
+            try
+            {
+                var (resultPost, _httpResponse) =
                 await HttpClientUtility.PostAsyncAcendes<ResultSerDMS>(url + urlSerDMS, request, token);
-            if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
-            {
-                return (resultPost.result.status, resultPost.result.message);
-                //return ("proceso_correcto", "OK");
+                if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    if (resultPost.result != null)
+                    {
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "SERDMS", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return (resultPost.result.status, resultPost.result.message);
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "SERDMS", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
+                        return ("proceso_correcto", "El proceso falló al retornar respuesta");
+                    }
+
+                    //return ("proceso_correcto", "OK");
+                }
+                else
+                {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "SERDMS", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
+                    return ("Error", "El proceso falló al notificar a Acendes");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                return ("Error", "El proceso falló al notificar a Acendes");
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "SERDMS", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
+                return ("Error", ex.Message);
+                throw ex;
             }
+
         }
         public async static Task<(string, string)> CambioEstatus(ReqCambioEstatus request)
         {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "CAMBIOESTATUS");
             var (token, url) = await UsarTokenAcendes();
-
-            var (resultPost, _httpResponse) =
+            var jsonreq = JsonConvert.SerializeObject(request);
+            try
+            {
+                var (resultPost, _httpResponse) =
                 await HttpClientUtility.PostAsyncAcendes<ResultCambioEstatus>(url + urlCambioEstatus, request, token);
-            if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
-            {
-                return (resultPost.result.status, resultPost.result.message);
-                //return ("proceso_correcto", "OK");
+                if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    if (resultPost.result != null)
+                    {
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "CAMBIOESTATUS", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return (resultPost.result.status, resultPost.result.message);
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "CAMBIOESTATUS", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
+                        return ("proceso_correcto", "El proceso falló al retornar respuesta");
+                    }
+
+                    //return ("proceso_correcto", "OK");
+                }
+                else
+                {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "CAMBIOESTATUS", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
+                    return ("Error", "El proceso falló al notificar a Acendes");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                return ("Error", "El proceso falló al notificar a Acendes");
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "CAMBIOESTATUS", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
+                return ("Error", ex.Message);
+                throw ex;
             }
+
         }
         public async static Task<(string, string)> Gestoria(ReqGestoria request)
         {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "GESTORIA");
             var (token, url) = await UsarTokenAcendes();
-
-            var (resultPost, _httpResponse) =
+            var jsonreq = JsonConvert.SerializeObject(request);
+            try
+            {
+                var (resultPost, _httpResponse) =
                 await HttpClientUtility.PostAsyncAcendes<ResultGestoria>(url + urlGestoria, request, token);
-            if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
-            {
-                return (resultPost.result.status, resultPost.result.message);
-                //return ("proceso_correcto", "OK");
+                if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    if (resultPost.result != null)
+                    {
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "GESTORIA", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return (resultPost.result.status, resultPost.result.message);
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "GESTORIA", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
+                        return ("proceso_correcto", "El proceso falló al retornar respuesta");
+                    }
+
+                    //return ("proceso_correcto", "OK");
+                }
+                else
+                {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "GESTORIA", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
+                    return ("Error", "El proceso falló al notificar a Acendes");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                return ("Error", "El proceso falló al notificar a Acendes");
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "GESTORIA", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
+                return ("Error", ex.Message);
+                throw ex;
             }
+
         }
         public async static Task<(string, string)> CancelacionGestoria(ReqCancelacionGestoria request)
         {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "CANCELACIONGESTORIA");
             var (token, url) = await UsarTokenAcendes();
-
-            var (resultPost, _httpResponse) =
+            var jsonreq = JsonConvert.SerializeObject(request);
+            try
+            {
+                var (resultPost, _httpResponse) =
                 await HttpClientUtility.PostAsyncAcendes<ResultCancelacionGestoria>(url + urlCancelacionGestoria, request, token);
-            if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
-            {
-                return (resultPost.result.status, resultPost.result.message);
-                //return ("proceso_correcto", "OK");
+                if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    if (resultPost.result != null)
+                    {
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "CANCELACIONGESTORIA", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return (resultPost.result.status, resultPost.result.message);
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "CANCELACIONGESTORIA", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
+                        return ("proceso_correcto", "El proceso falló al retornar respuesta");
+                    }
+
+                    //return ("proceso_correcto", "OK");
+                }
+                else
+                {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "CANCELACIONGESTORIA", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
+                    return ("Error", "El proceso falló al notificar a Acendes");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                return ("Error", "El proceso falló al notificar a Acendes");
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "CANCELACIONGESTORIA", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
+                return ("Error", ex.Message);
+                throw ex;
             }
+
         }
         public async static Task<(string, string)> Entrega(ReqEntrega request)
         {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "ENTREGA");
             var (token, url) = await UsarTokenAcendes();
-
-            var (resultPost, _httpResponse) =
+            var jsonreq = JsonConvert.SerializeObject(request);
+            try
+            {
+                var (resultPost, _httpResponse) =
                 await HttpClientUtility.PostAsyncAcendes<ResultEntrega>(url + urlEntrega, request, token);
-            if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
-            {
-                return (resultPost.result.status, resultPost.result.message);
-                //return ("proceso_correcto", "OK");
+                if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    if (resultPost != null)
+                    {
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "ENTREGA", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return (resultPost.result.status, resultPost.result.message);
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "ENTREGA", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
+                        return ("proceso_correcto", "El proceso falló al retornar respuesta");
+                    }
+
+                    //return ("proceso_correcto", "OK");
+                }
+                else
+                {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "ENTREGA", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
+                    return ("Error", "El proceso falló al notificar a Acendes");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                return ("Error", "El proceso falló al notificar a Acendes");
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "ENTREGA", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
+                return ("Error", ex.Message);
+                throw ex;
             }
+
+        }
+        public async static Task<(string, string)> Expediente(ReqExpediente request)
+        {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "EXPEDIENTE");
+            var (token, url) = await UsarTokenAcendes();
+            var jsonreq = JsonConvert.SerializeObject(request);
+            try
+            {
+                var (resultPost, _httpResponse) =
+                await HttpClientUtility.PostAsyncAcendes<ResultExpediente>(url + urlExpediente, request, token);
+                if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    if (resultPost != null)
+                    {
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "EXPEDIENTE", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return (resultPost.result.status, resultPost.result.message);
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "EXPEDIENTE", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
+                        return ("proceso_correcto", "El proceso falló al retornar respuesta");
+                    }
+
+                    //return ("proceso_correcto", "OK");
+                }
+                else
+                {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "EXPEDIENTE", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
+                    return ("Error", "El proceso falló al notificar a Acendes");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "EXPEDIENTE", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
+                return ("Error", ex.Message);
+                throw ex;
+            }
+
+        }
+        public async static Task<(string, string)> LiberarVehiculo(string solId, string Vin, string idDatamovil, string statusDatamovil)
+        {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "LIBERAVEHICULO");
+            var (token, url) = await UsarTokenAcendes();
+            ReqLiberaVehiculo request = new ReqLiberaVehiculo();
+            request = new ReqLiberaVehiculo
+            {
+                sol_id = solId,
+                vin = Vin,
+                id_datamovil = idDatamovil,
+                status_datamovil = statusDatamovil
+            };
+            var jsonreq = JsonConvert.SerializeObject(request);
+            try
+            {
+                var (resultPost, _httpResponse) =
+                await HttpClientUtility.PostAsyncAcendes<ResultLiberaVehiculo>(url + urlLiberaVehiculo, request, token);
+                if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    if (resultPost.result.status == null)
+                    {
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "LIBERAVEHICULO", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return ("proceso_correcto", "Error al procesar resultado de Acendes");
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "LIBERAVEHICULO", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
+                        return (resultPost.result.status, resultPost.result.message);
+                        //return ("proceso_correcto", "OK");
+                    }
+
+                }
+                else
+                {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "LIBERAVEHICULO", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
+                    return ("Error", "El proceso falló al notificar a Acendes");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "LIBERAVEHICULO", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
+                return ("Error", ex.Message);
+                throw ex;
+            }
+
+        }
+        public async static Task<(string, string)> CancelacionContrato(ReqCancelacionContrato request)
+        {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "CANCELACIONCONTRATO");
+            var (token, url) = await UsarTokenAcendes();
+            var jsonreq = JsonConvert.SerializeObject(request);
+            try
+            {
+                var (resultPost, _httpResponse) =
+                await HttpClientUtility.PostAsyncAcendes<ResultCancelacionContrato>(url + urlCancelacionContrato, request, token);
+                if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    if (resultPost.result != null)
+                    {
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "CANCELACIONCONTRATO", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return (resultPost.result.status, resultPost.result.message);
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "CANCELACIONCONTRATO", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
+                        return ("proceso_correcto", "El proceso falló al retornar respuesta");
+                    }
+
+                    //return ("proceso_correcto", "OK");
+                }
+                else
+                {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "CANCELACIONCONTRATO", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
+                    return ("Error", "El proceso falló al notificar a Acendes");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "CANCELACIONCONTRATO", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
+                return ("Error", ex.Message);
+                throw ex;
+            }
+
+        }
+        public async static Task<(string, string)> RenovacionSeguro(ReqRenovacionSeguro request)
+        {
+            var IdLogInterfaz = await LogsDataware.LogInterfaz(LogsDataware.Acendes, LogsDataware.OKActualizar, "[JOB] Notificar a Acendes", "RENOVACIONSEGURO");
+            var (token, url) = await UsarTokenAcendes();
+            var jsonreq = JsonConvert.SerializeObject(request);
+            try
+            {
+                var (resultPost, _httpResponse) =
+                await HttpClientUtility.PostAsyncAcendes<ResultRenovacionSeguro>(url + urlRenovacionSeguro, request, token);
+                if (_httpResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    if (resultPost.result != null)
+                    {
+                        var jsonres = JsonConvert.SerializeObject(resultPost);
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "RENOVACIONSEGURO", "[JOB] Notificación realizada", "Request: " + jsonreq + ", Response: " + jsonres);
+                        return (resultPost.result.status, resultPost.result.message);
+                    }
+                    else
+                    {
+                        LogsDataware.LogInterfazDetalle(IdLogInterfaz, "RENOVACIONSEGURO", "[JOB] Notificación realizada", "Error al retornar respuesta. Request: " + jsonreq);
+                        return ("proceso_correcto", "El proceso falló al retornar respuesta");
+                    }
+
+                    //return ("proceso_correcto", "OK");
+                }
+                else
+                {
+                    LogsDataware.LogInterfazDetalle(IdLogInterfaz, "RENOVACIONSEGURO", "[JOB] Error al notificar", "Response: " + _httpResponse.ReasonPhrase + ", Request: " + jsonreq);
+                    return ("Error", "El proceso falló al notificar a Acendes");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogsDataware.LogInterfazDetalle(IdLogInterfaz, "RENOVACIONSEGURO", "[JOB] Error al notificar", "Exepción: " + ex.Message + ", Request: " + jsonreq);
+                return ("Error", ex.Message);
+                throw ex;
+            }
+
         }
         #endregion
 

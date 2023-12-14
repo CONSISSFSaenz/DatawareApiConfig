@@ -11,5 +11,6 @@
         public string? Fecha { get; set; }
         public string? Hora { get; set; }
         public long? Identifier { get; set; }
+        public string? MotivoError { get; set; }
     }
 }

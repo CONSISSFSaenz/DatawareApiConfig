@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using Aspose.Cells;
+using Dapper;
 using DatawareConfig.Models;
 using MailKit.Net.Smtp;
 using MailKit.Security;
@@ -29,7 +30,7 @@ namespace DatawareConfig.Helpers
             {
                 if (cnx.State == ConnectionState.Closed)
                     await cnx.OpenAsync();
-                var sql = "SELECT * FROM Sistema.VWSyncInventarioIntelimotorAltaFueraDataware WHERE ValidacionVIN = 1 AND ValidacionColor = 1 AND ValidacionMMYV = 4 AND Identifier=" + identifier;
+                var sql = "SELECT * FROM Sistema.VWSyncInventarioIntelimotorAltaFueraDataware WHERE ValidacionVIN = 1 AND ValidacionColor = 1 AND ValidacionMMYV = 4 AND TipoCompraId IS NOT NULL AND Identifier=" + identifier;
                 var rows = await cnx.QueryAsync<SyncInventarioAltaFueraDataware>(sql);
                 var total = rows.Count();
                 foreach(var row in rows)
@@ -132,24 +133,55 @@ namespace DatawareConfig.Helpers
                 {
                     string FechaAdquisicion = row.Fecha + " " + row.Hora;
                     filasTablaHtml += "<tr><td>" + row.Vin + "</td><td>" + row.NombreMarca + "</td><td>" + row.NombreModelo + "</td><td>" + row.NombreYear + "</td><td>" + row.NombreVersion
-                        + "</td><td>" + row.CVColorValue + "</td><td>" + FechaAdquisicion.Replace("00:00:00", "") + "</td></tr>";
+                        + "</td><td>" + row.CVColorValue + "</td><td>" + FechaAdquisicion.Replace("00:00:00", "") + "</td>" 
+                        + "<td>" + row.MotivoError + "</td></tr>";
                 }
 
                 var txtHeaderHtml = "<p>Se ha ejecutado el proceso de Sync del Inventario de Intelimotor, se encontró que hay " + total + " vehículos dados de alta con errores.</p><p>Fecha de Ejecución: " + FechaHora + " </p>";
 
                 var tablaHtml = "<table role='presentation' style='width:100%;border:1 solid #000;background:#FFF'>"
-                    + "<tr><td>VIN</td><td>MARCA</td><td>MODELO</td><td>AÑO</td><td>VERSION</td><td>COLOR</td><td>FECHA ADQUISICION</td><tr>";
+                    + "<tr><td>VIN</td><td>MARCA</td><td>MODELO</td><td>AÑO</td><td>VERSION</td><td>COLOR</td><td>FECHA ADQUISICION</td><td>ERRORES</td><tr>";
 
                 var txtFooterHtml = "</table><br>";
 
-                await cnx.CloseAsync();
-                if (total > 0)
+                /* Errores en vehiculos con tipo de compra no encontrados */
+                var filasTablaHtmlTC = "";
+                var sqlTC = "SELECT * FROM Sistema.VWSyncInventarioIntelimotorAltaFueraDataware WHERE TipoCompraId IS NULL AND Identifier=" + identifier;
+                var rowsTC = await cnx.QueryAsync<SyncInventarioAltaFueraDataware>(sql);
+                var totalTC = rowsTC.Count();
+                foreach(var rowTC in rowsTC)
                 {
-                    var Html = txtHeaderHtml + tablaHtml + filasTablaHtml + txtFooterHtml;
-
-                    Notificaciones(2, Html);
+                    string FechaAdquisicion = rowTC.Fecha + " " + rowTC.Hora;
+                    filasTablaHtmlTC += "<tr><td>" + rowTC.Vin + "</td><td>" + FechaAdquisicion.Replace("00:00:00", "") + "</td><td>" + rowTC.MotivoError + "</td></tr>";
                 }
 
+                var txtHeaderHtmlTC = "<p>En el proceso se encontró que hay " + totalTC + " vehículos con errores de <b>Tipo de compra no identificada</b>.</p>";
+
+                var tablaHtmlTC = "<table role='presentation' style='width:100%;border:1 solid #000;background:#FFF'>"
+                    + "<tr><td>VIN</td><td>FECHA ADQUISICION</td><td>OTROS ERRORES</td><tr>";
+
+                var txtFooterHtmlTC = "</table><br>";
+
+                await cnx.CloseAsync();
+                var HtmlTC = "";
+                if (totalTC > 0)
+                {
+                    HtmlTC = txtHeaderHtmlTC + tablaHtmlTC + filasTablaHtmlTC + txtFooterHtmlTC;
+                }
+
+                if (total > 0 && totalTC > 0)
+                {
+                    var Html = txtHeaderHtml + tablaHtml + filasTablaHtml + txtFooterHtml + HtmlTC;
+                    Notificaciones(2, Html);
+                }else if(total > 0 && totalTC==0)
+                {
+                    var Html = txtHeaderHtml + tablaHtml + filasTablaHtml + txtFooterHtml;
+                    Notificaciones(2, Html);
+                }else if (total==0 && totalTC > 0)
+                {
+                    var Html = txtHeaderHtml + HtmlTC;
+                    Notificaciones(2, Html);
+                }
                 return total;
             }
         }
@@ -216,27 +248,39 @@ namespace DatawareConfig.Helpers
 
         public static void Enviar(string subject, string toEmail, string priority, string container)
         {
-            string Fecha = TimeZoneInfo.ConvertTime(DateTime.Now, TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time (Mexico)")).ToString("yyyy-MM-dd HH:mm:ss");
-            var email = new MimeMessage();
+            try
+            {
+                string Fecha = TimeZoneInfo.ConvertTime(DateTime.Now, TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time (Mexico)")).ToString("yyyy-MM-dd HH:mm:ss");
+                var email = new MimeMessage();
 
-            string remitente = "dataware@datamovil.com";
-            string usuariomail = "dataware@datamovil.com";
-            string password = "cSe7m4N9sK";
-            string host = "mail.datamovil.com";
-            int port = 25;
-            bool useSSL = false;
+                string remitente = "dataware@datamovil.com";
+                string usuariomail = "dataware@datamovil.com";
+                string password = "cSe7m4N9sK";
+                string host = "mail.datamovil.com";
+                int port = 25;
+                bool useSSL = false;
 
-            email.From.Add(MailboxAddress.Parse(remitente));
-            email.To.Add(MailboxAddress.Parse(toEmail));
-            email.Subject = subject + " | " + priority + " - " + Fecha;
+                email.From.Add(MailboxAddress.Parse(remitente));
+                email.To.Add(MailboxAddress.Parse(toEmail));
+                email.Subject = subject + " | " + priority + " - " + Fecha;
 
-            email.Body = new TextPart(MimeKit.Text.TextFormat.Html) { Text = container };
+                email.Body = new TextPart(MimeKit.Text.TextFormat.Html) { Text = container };
 
-            using var smtp = new SmtpClient();
-            smtp.Connect(host, 45, SecureSocketOptions.None);
-            smtp.Authenticate(usuariomail, password);
-            smtp.Send(email);
-            smtp.Disconnect(true);
+                using var smtp = new SmtpClient();
+                smtp.Connect(host, 45, SecureSocketOptions.None);
+                smtp.Authenticate(usuariomail, password);
+                smtp.Send(email);
+                smtp.Disconnect(true);
+            }
+            catch (Exception ex)
+            {
+                var procUpd = LogSystem.ValidarProcesoActivo("UpdInvInt", 0);
+                LogsDataware.LogSistema(
+                LogsDataware.Dataware,
+                LogsDataware.ERRORActualizar,
+                "CORREO DATAWARE", "Proceso: " + procUpd + ", Excepción: " + ex.Message);
+            }
+            
         }
 
         public static void Send(string tipomsg, string asunto, string mensaje)

@@ -18,6 +18,8 @@ namespace DatawareConfig.Models
         public List<ModelModel>? models { get; set; }
         public List<YearModel>? years { get; set; }
         public List<TrimModel>? trims { get; set; }
+        public bool? useCustomTrim { get; set; }
+        public string? customTrim { get; set; }
         public List<CustomValuesSyncIntDTOModel> customValues { get; set; }
         public long? ListPrice { get; set; } // PrecioLista
         public string? Status { get; set; } // StatusIntelimotor (Activo,Inactivo)

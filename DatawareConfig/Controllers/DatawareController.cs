@@ -66,13 +66,21 @@ namespace DatawareConfig.Controllers
                     {
                         if(dts.Proceso == 0)
                         {
-                            await ReglasAutomaticas.UpdProcesoExtendido(dts.PTAId, 2);
                             if(dts.NombreTarea == "GestoriaCancelada" || dts.NombreTarea == "ReagendarEntrega")
                             {
                                 //I-DM-CANCELACIONGESTORIA-AC
                                 //Correo Notificacion
+                                await ReglasAutomaticas.UpdProcesoExtendido(dts.PTAId, 2);
                                 var cancelarGestoria = await ProcesosExtendidos.CancelarGestoriaAcendes(dts.PTAId,dts.NombreTarea,dts.CadenaIds);
 
+                            }else if(dts.NombreTarea == "Pruebademanejo")
+                            {
+                                await ReglasAutomaticas.UpdProcesoExtendido(dts.PTAId, 2);
+                                var notificaCambioEstatus = await ProcesosExtendidos.NotificaCambioEstatus(dts.PTAId,dts.NombreTarea,dts.CadenaIds);
+                            }else if(dts.NombreTarea == "RenovacionVehiculo")
+                            {
+                                await ReglasAutomaticas.UpdProcesoExtendido(dts.PTAId, 2);
+                                var notificaRenovarSeguro = await ProcesosExtendidos.NotificacionRenovarSeguro(dts.PTAId,dts.NombreTarea,dts.CadenaIds);
                             }
                         }
                     }

@@ -9,6 +9,7 @@ using DatawareConfig.Helpers;
 using DatawareConfig.Models;
 using DatawareConfig.Servicios;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -432,6 +433,7 @@ namespace DatawareConfig.Controllers
                         "Error al descargar datos");
                         resultadoApi = _httpResponseMessageEntSI.StatusCode.ToString();
                         SendMailHelper.ErrorSyncInventarioIntelimotor(resultadoApi);
+                        procUpd = await LogSystem.ValidarProcesoActivo("UpdInvInt", 0);
                     }
                     LogSystem.SyncsDetailInvIntelimotor(syncId, identifier, "Termina descarga datos Intelimotor", resultSI.Count().ToString(), resultadoApi);
 
@@ -484,6 +486,7 @@ namespace DatawareConfig.Controllers
                 }
                 catch (Exception ex)
                 {
+                    procUpd = await LogSystem.ValidarProcesoActivo("UpdInvInt", 0);
                     LogsDataware.LogUsuario(
                     _uidUser,
                     await LogsDataware.GetModuloId("Configuración y Tablas"),
@@ -491,8 +494,15 @@ namespace DatawareConfig.Controllers
                     "SyncIntelimotor Inventario",
                     ex.Message);
                     SendMailHelper.ErrorSyncInventarioIntelimotor(ex.Message);
-                    return new ObjectResult(ResponseHelper.Response(500, null, ex.Message)) { StatusCode = 500 };
-                    throw ex;
+                    object dataobj = new
+                    {
+                        totalRegistros = 0,
+                        totalAlta = 0,
+                        totalConErrores = 0,
+                        totalFolderCreados = 0,
+                        statusProceso = procUpd
+                    };
+                    return new ObjectResult(ResponseHelper.Response(500, dataobj, ex.Message)) { StatusCode = 500 };
                 }
             }
         }

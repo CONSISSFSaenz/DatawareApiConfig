@@ -10,6 +10,7 @@ namespace DatawareConfig.Servicios
 {
     public class ProcesosExtendidos
     {
+        #region Gestoria
         public class ReqModel
         {
             public string? sol_id { get; set; }
@@ -169,5 +170,146 @@ namespace DatawareConfig.Servicios
                 return "NOEMAIL";
             }
         }
+
+        public static async Task<string> NotificaCambioEstatus(long PTAId, string NombreTarea,string CadenaIds)
+        {
+            if (CadenaIds.Contains(","))
+            {
+                var rows = CadenaIds.Split(",");
+                int totalPorProcesar = rows.Count();
+                int totalProcesados = 0;
+                string generalId = "";
+                string CadenaVINs = "";
+                string msjReturn = "";
+
+                foreach (var row in rows)
+                {
+                    if(row != "0")
+                    {
+                        generalId = row;
+                        var Request = GetDatosRequest(generalId).Result;
+                        var (ID_CE, MOTIVO_CE) = await AcendesHelper.CambioEstatusByEndPoint("LiberarPrueba");
+                        AcendesHelper.ReqCambioEstatus reqCE = new AcendesHelper.ReqCambioEstatus
+                        {
+                            sol_id = Request.sol_id,
+                            vin = Request.vin,
+                            id_datamovil = Convert.ToString(Request.id_datamovil),
+                            status_datamovil = Request.status_datamovil,
+                            motivo_cambio_estatus = MOTIVO_CE,
+                            desc_cambio_estatus = MOTIVO_CE,
+                            sol_estatus = ID_CE
+                        };
+                        var (statusAcendesCE, mensajeAcendesCE) = await AcendesHelper.CambioEstatus(reqCE);
+                        if (statusAcendesCE == "proceso_correcto")
+                        {
+                            await ReglasAutomaticas.UpdProcesoExtendido(PTAId, 3);
+                            CadenaVINs = CadenaVINs + "<b style=\"color:#006400 !important;\">" + Request.vin + "</b><br>";
+                        }
+                        else
+                        {
+                            await ReglasAutomaticas.UpdProcesoExtendido(PTAId, 4);
+                            CadenaVINs = CadenaVINs + "<b style=\"color:#8B0000 !important;\">" + Request.vin + "</b><br>";
+                        }
+                        var logPTA = await ReglasAutomaticas.LogPTAPruebaManejoSeguro(Request.vin, Request.sol_id, Request.contrato, statusAcendesCE, generalId);
+                        totalProcesados++;
+                    }
+                }
+
+                msjReturn = "Procesados: " + totalProcesados + "/" + totalPorProcesar;
+
+                if (NombreTarea == "Pruebademanejo")
+                {
+                    string asuntoMail = "Cambio de estatus por Regla Automática";
+                    string mensajeMail = "<p>Se ha ejecutado la regla automática de Prueba de Manejo y afectó a los siguientes VIN:</p>"
+                    + CadenaVINs
+                    + "<p>" + msjReturn + ".<br>Revisar Logs para mas detalle.</p>";
+                    SendMailHelper.CorreoGenerico(asuntoMail, mensajeMail);
+                }
+
+                return msjReturn;
+            }
+            else
+            {
+                return "Procesados: 0";
+            }
+        }
+        #endregion
+
+        #region RenovacionSeguros
+        public class ListRenovacionSeguro
+        {
+            public Guid? GeneralId { get; set; }
+            public string? vin { get; set; }
+            public string? NombreMarca { get; set; }
+            public string? NombreModelo { get; set; }
+            public string? NombreYear { get; set; }
+            public string? NombreVersion { get; set; }
+            public string? Tipo { get; set; }
+            public DateTime? FechaVencimiento { get; set; }
+            public int? DiasVigencia { get; set; }
+        }
+
+        public static async Task<ListRenovacionSeguro> GetDatosRequestRenovacionSeguro(string generalId)
+        {
+            string cnxStr = LogsDataware.CnxStrDb();
+            using (SqlConnection cnx = new SqlConnection(cnxStr))
+            {
+                if (cnx.State == ConnectionState.Closed)
+                    await cnx.OpenAsync();
+                var sql = "EXEC [Acendes].[SP_GetAll_ListAutos_RenovacionSeguro] @GeneralId='" + generalId + "'";
+                var rows = await cnx.QueryFirstOrDefaultAsync<ListRenovacionSeguro>(sql);
+                await cnx.CloseAsync();
+                return rows;
+            }
+        }
+
+        public static async Task<string> NotificacionRenovarSeguro(long PTAId, string NombreTarea, string CadenaIds)
+        {
+            if (CadenaIds.Contains(","))
+            {
+                var rows = CadenaIds.Split(",");
+                int totalPorProcesar = rows.Count();
+                int totalProcesados = 0;
+                string generalId = "";
+                string tblrow = "";
+                foreach (var row in rows)
+                {
+                    if (row != "0")
+                    {
+                        generalId = row;
+                        var Request = GetDatosRequestRenovacionSeguro(generalId).Result;
+                        await ReglasAutomaticas.UpdProcesoExtendido(PTAId, 3);
+                        if (NombreTarea == "RenovacionVehiculo")
+                        {
+                            tblrow += "<tr>"
+                                + "<td>" + Request.vin + "</td>"
+                                + "<td>" + Request.NombreMarca + "</td><td>" + Request.NombreModelo + "</td><td>" + Request.NombreYear + "</td><td>" + Request.NombreVersion + "</td>"
+                                + "<td>" + Request.Tipo + "</td><td>" + Request.FechaVencimiento + "</td><td>" + Request.DiasVigencia + "</td>"
+                                + "</tr>";
+                            
+                        }
+                        var logPTA = await ReglasAutomaticas.LogPTARenovacionSeguro(Request.vin, Request.NombreMarca, Request.NombreModelo, Request.NombreYear, Request.Tipo, Request.FechaVencimiento, Request.DiasVigencia, generalId, null);
+                        totalProcesados++;
+                    }
+                }
+
+                string asuntoMail = "Renovacion de seguro";
+                string mensajeMail = "<p>Los siguientes vehículos requieren una renovación de seguro</p>"
+                    + "<table><thead>" 
+                    + "<tr><th>VIN</th><th>MARCAR</th><th>MODELO</th><th>AÑO</th><th>VERSION</th><th>TIPO</th><th>FECHA VENCIMIENTO</th><th>DIAS VIGENCIA</th></tr>"
+                    + "</thead><tbody>" + tblrow + "</tbody></table>";
+
+                SendMailHelper.CorreoGenerico(asuntoMail, mensajeMail);
+                return "Procesados: " + totalProcesados + "/" + totalPorProcesar;
+
+            }
+            else
+            {
+                return "Procesados: 0";
+            }
+        }
+
+        #endregion
+
     }
 }

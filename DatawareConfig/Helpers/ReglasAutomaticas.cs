@@ -156,6 +156,56 @@ namespace DatawareConfig.Helpers
             }
             return ret;
         }
+
+        public static async Task<long> LogPTAPruebaManejoSeguro(string vin, string solId, string contrato, string statusAcendes, object generalId)
+        {
+            string cnxStr = LogsDataware.CnxStrDb();
+            long ret = 0;
+            using (SqlConnection cnx = new SqlConnection(cnxStr))
+            {
+                if (cnx.State == ConnectionState.Closed)
+                    await cnx.OpenAsync();
+                using (SqlCommand cmd = new SqlCommand("[Logs].[SP_ProcesosTareasAutomaticas_PruebadeManejoSeguro]", cnx))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@GeneralId", System.Data.SqlDbType.UniqueIdentifier).Value = new Guid(generalId.ToString());
+                    cmd.Parameters.Add("@VIN", SqlDbType.NVarChar).Value = vin;
+                    cmd.Parameters.Add("@sol_id", SqlDbType.NVarChar).Value = solId;
+                    cmd.Parameters.Add("@contrato", SqlDbType.NVarChar).Value = contrato;
+                    cmd.Parameters.Add("@StatusAcendes", SqlDbType.NVarChar).Value = statusAcendes;
+                    ret = await cmd.ExecuteNonQueryAsync();
+                }
+                await cnx.CloseAsync();
+            }
+            return ret;
+        }
+
+        public static async Task<long> LogPTARenovacionSeguro(string? vin, string? nmarca, string? nmodelo, string? nyear, string? tipo, DateTime? fechaVencimiento, int? diasVigencia, object generalId, string? statusAcendes = null)
+        {
+            string cnxStr = LogsDataware.CnxStrDb();
+            long ret = 0;
+            using (SqlConnection cnx = new SqlConnection(cnxStr))
+            {
+                if (cnx.State == ConnectionState.Closed)
+                    await cnx.OpenAsync();
+                using (SqlCommand cmd = new SqlCommand("[Logs].[SP_ProcesosTareasAutomaticas_RenovacionSeguro]", cnx))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@GeneralId", System.Data.SqlDbType.UniqueIdentifier).Value = new Guid(generalId.ToString());
+                    cmd.Parameters.Add("@VIN", SqlDbType.NVarChar).Value = vin;
+                    cmd.Parameters.Add("@marca", SqlDbType.NVarChar).Value = nmarca;
+                    cmd.Parameters.Add("@modelo", SqlDbType.NVarChar).Value = nmodelo;
+                    cmd.Parameters.Add("@year", SqlDbType.NVarChar).Value = nyear;
+                    cmd.Parameters.Add("@Tipo", SqlDbType.NVarChar).Value = tipo;
+                    cmd.Parameters.Add("@FechaVencimiento", SqlDbType.Date).Value = fechaVencimiento;
+                    cmd.Parameters.Add("@DiasVigencia", SqlDbType.Int).Value = diasVigencia;
+                    cmd.Parameters.Add("@StatusAcendes", SqlDbType.NVarChar).Value = statusAcendes;
+                    ret = await cmd.ExecuteNonQueryAsync();
+                }
+                await cnx.CloseAsync();
+            }
+            return ret;
+        }
         #endregion
     }
 }

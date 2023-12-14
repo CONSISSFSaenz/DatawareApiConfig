@@ -36,9 +36,9 @@ namespace DatawareConfig.Helpers
         public static string CnxStrDb()
         {
             string cnxAmazon = "Server=mssql-prod.c5zxdmjllybo.us-east-1.rds.amazonaws.com;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=admin;password=*Consiss$2021;Connection Timeout=900000";
-            string cnxAzureDev = "Server=consissqa.database.windows.net;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=administrador;password=C0nsiss2022+;Connection Timeout=12000";
+            string cnxAzureDev = "Server=consissqa.database.windows.net;Initial Catalog=DataWare_Dev;MultipleActiveResultSets=true;User Id=administrador;password=C0nsiss2022+;Connection Timeout=900000";
             string cnxAzureQA = "Server=consissqa.database.windows.net;Initial Catalog=DataWare_QA;MultipleActiveResultSets=true;User Id=administrador;password=C0nsiss2022+;Connection Timeout=900000";
-            return cnxAzureQA;
+            return cnxAzureDev;
         }
 
         public static async Task<long> LogInterfaz(long ProcesoId, long CategoriaId, string Descripcion, string Contenido)
