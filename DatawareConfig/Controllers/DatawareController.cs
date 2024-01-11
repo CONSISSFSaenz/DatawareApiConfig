@@ -58,11 +58,17 @@ namespace DatawareConfig.Controllers
         public async Task<IActionResult> ObtenerProcesosExtendidos()
         {
             try
-            {
+            {               
                 var datos = await ReglasAutomaticas.ObtenerProcesosExtendidos();
-                if (datos != null && datos.Count() > 0)
+                var ListProcesosACtivos = new List<ProcesosTareasAutomaticasModel>();
+                if(datos.Count() > 0)
+                    ListProcesosACtivos = datos.Where(x => x.Proceso == 0).ToList();
+                else
+                    return new ObjectResult(ResponseHelper.Response(403, "DatosNULL", "Sin datos")) { StatusCode = 403 };
+
+                if (ListProcesosACtivos.Count() > 0) //datos != null && datos.Count() > 0
                 {
-                    foreach (var dts in datos)
+                    foreach (var dts in ListProcesosACtivos)
                     {
                         if(dts.Proceso == 0)
                         {
