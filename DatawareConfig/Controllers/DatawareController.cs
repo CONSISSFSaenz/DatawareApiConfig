@@ -87,7 +87,7 @@ namespace DatawareConfig.Controllers
                             {
                                 await ReglasAutomaticas.UpdProcesoExtendido(dts.PTAId, 2);
                                 var notificaRenovarSeguro = await ProcesosExtendidos.NotificacionRenovarSeguro(dts.PTAId,dts.NombreTarea,dts.CadenaIds);
-                            }
+                            } 
                         }
                     }
 
